@@ -1,0 +1,14 @@
+# Ignore node_modules in both client and server
+client/node_modules/
+server/node_modules/
+
+# Ignore build folder (if you build the React app)
+client/build/
+
+# Ignore environment variables
+*.env
+
+# Ignore OS and IDE-specific files
+.DS_Store
+Thumbs.db
+.vscode/
