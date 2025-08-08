@@ -1,0 +1,66 @@
+/* Light Theme */
+:root {
+  --color-primary: #B91C1C;
+  --color-text: #374151;
+  --color-bg: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  --color-primary: #F87171;        /* lighter red */
+  --color-text: #F8FAFC;
+  --color-bg: #1F2937;             /* dark gray background */
+  --color-card: #111827;           /* darker card */
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-info: #60A5FA;
+}
+
+/* Utility styles */
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+.home-container {
+  text-align: center;
+  padding: 2rem;
+}
+
+.logo {
+  max-width: 150px;
+  margin-bottom: 1rem;
+}
+
+.button-group {
+  margin-top: 2rem;
+}
+
+.home-button {
+  margin: 0 1rem;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  border: none;
+  cursor: pointer;
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+.home-button:hover {
+  background-color: #991B1B;
+}
+
+.theme-switch {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  cursor: pointer;
+}

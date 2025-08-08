@@ -1,0 +1,131 @@
+/* Neptune UI Theme - EmployeePerformanceManager */
+
+/* Global Reset & Base */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa; /* Light Background */
+  color: #212529; /* Primary Text */
+}
+
+/* Headings */
+h1, h2, h3, h4, h5 {
+  color: #212529;
+}
+
+/* Primary Buttons */
+.btn-primary {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: #6c757d;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: #565e64;
+}
+
+/* Success / Green */
+.alert-success, .badge-success {
+  background-color: #28a745;
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+}
+
+/* Danger / Red */
+.alert-danger, .badge-danger {
+  background-color: #dc3545;
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+}
+
+/* Warning / Amber */
+.alert-warning, .badge-warning {
+  background-color: #ffc107;
+  color: #212529;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+}
+
+/* Cards */
+.card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+/* Table Styles */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+}
+
+.table th,
+.table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #dee2e6;
+  text-align: left;
+}
+
+.table th {
+  background-color: #e9ecef;
+  color: #212529;
+}
+
+/* Input Fields */
+input, select, textarea {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.4rem;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 1rem;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* NavBar */
+.navbar {
+  background-color: #007bff;
+  padding: 1rem;
+  color: #fff;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Footer */
+.footer {
+  background-color: #6c757d;
+  color: #fff;
+  text-align: center;
+  padding: 1rem;
+  margin-top: 2rem;
+  border-top: 4px solid #007bff;
+}
