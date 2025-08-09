@@ -13,13 +13,11 @@ const PORT = process.env.PORT || 5000;
 
 // 🧩 Middleware
 app.use(cors({
-
-  origin: 'https://employee-manager-p500.onrender.com', // frontend URL
-
-  methods: ['GET','POST','PUT','DELETE'],
-
+  origin: [
+    'http://localhost:3000', 
+    'https://employee-manager-p500.onrender.com'
+  ],
   credentials: true
-
 }));
 app.use(express.json());
 
