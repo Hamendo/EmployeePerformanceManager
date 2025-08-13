@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -36,9 +37,29 @@ const styles = {
   table: { width: '100%', borderCollapse: 'collapse', backgroundColor: '#FFFFFF' },
   th: { backgroundColor: '#374151', color: '#FFFFFF', padding: '0.5rem', border: '1px solid #ccc' },
   td: { padding: '0.5rem', border: '1px solid #ccc' },
+  pagination: {
+    marginTop: '1rem',
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '0.5rem',
+  },
+  pageButton: {
+    padding: '0.4rem 0.8rem',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    background: '#fff',
+  },
+  pageButtonDisabled: {
+    padding: '0.4rem 0.8rem',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    background: '#eee',
+    color: '#888',
+    cursor: 'not-allowed',
+  }
 };
 
-// Use your exact mapping strings here as keys in DEPT_FIELDS
 const DEPT_FIELDS = {
   Reservation: [
     'Reservation - No of Booking Requests Processed ',
@@ -61,14 +82,14 @@ const DEPT_FIELDS = {
   'Sales(Online)': [
     'Sales Online - No of Enquiries Received ',
     'Sales Online - No of Conversions ',
-    'Sales Online - No of Follow‑Ups Taken ',
+    'Sales Online - No of Follow-Ups Taken ',
     'Sales Online - No of Cancellations ',
     'Sales Online - Remarks ',
   ],
   'Sales(Group)': [
     'Sales Group - No of Enquiries Received ',
     'Sales Group - No of Conversions Made ',
-    'Sales Group - No of Follow‑Ups Taken ',
+    'Sales Group - No of Follow-Ups Taken ',
     'Sales Group - No of Cancellations ',
     'Sales Group - No of Amendments Made ',
     'Sales Group - Remarks ',
@@ -102,7 +123,6 @@ const DEPT_FIELDS = {
   Others: ['Others - Give a summary for the day'],
 };
 
-// Helper: parse date string DD/MM/YYYY or D/M/YYYY to Date object
 function parseDateString(dateStr) {
   if (!dateStr) return new Date(0);
   const parts = dateStr.trim().split(/[\/\-]/);
@@ -113,20 +133,54 @@ function parseDateString(dateStr) {
 
 const PerformanceView = () => {
   const navigate = useNavigate();
-  const GF1_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSckA29iTf4kbtRt6ymr4wN2k9IBo4LS1GOim2tv-mcnVe-8UQ/viewform';
 
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Search states
   const [searchDate, setSearchDate] = useState('');
   const [searchEmpId, setSearchEmpId] = useState('');
   const [searchDept, setSearchDept] = useState('');
 
-  // Flatten performance record
-  const flattenRecord = perf => {
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
+
+  const [viewAll, setViewAll] = useState(false);
+
+  const reportOptions = [
+    { label: 'Last 3 Months', value: 'last3months' },
+    { label: 'Last Month', value: 'lastmonth' },
+    { label: '2nd Last Month', value: 'secondlastmonth' },
+    { label: '3rd Last Month', value: 'thirdlastmonth' }
+  ];
+
+  const downloadZip = (period) => {
+    if (!period) return;
+    const url = `${import.meta.env.VITE_API_URL}/api/performance-export/export-zip`;
+    console.log('Downloading ZIP from:', url, 'with period:', period);
+    axios.get(url, {
+      params: { period },
+      responseType: 'blob'
+    })
+      .then(res => {
+        const blob = new Blob([res.data]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `performance_${period}.zip`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(err => console.error('Download failed', err));
+  };
+
+  const flattenRecord = (perf) => {
     const row = {
       employeeId: perf.empId || perf.employeeId,
       department: perf.department,
@@ -139,17 +193,19 @@ const PerformanceView = () => {
     return row;
   };
 
-  // Fetch data on mount
   useEffect(() => {
     setLoading(true);
     setError('');
-    fetch(`${import.meta.env.VITE_API_URL}/api/performance`)
+
+    const params = viewAll
+      ? { viewAll: true }
+      : { month, page, limit: pageSize };
+
+    axios.get(`${import.meta.env.VITE_API_URL}/api/performance`, { params })
       .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(json => {
-        setData(Array.isArray(json) ? json : []);
+        const json = res.data;
+        setData(Array.isArray(json.data) ? json.data : []);
+        setTotalPages(json.totalPages || 1);
         setLoading(false);
       })
       .catch(err => {
@@ -157,22 +213,19 @@ const PerformanceView = () => {
         setError('Failed to fetch performance data');
         setLoading(false);
       });
-  }, []);
+  }, [month, page, viewAll]);
 
-  // Compute filtered data on search or data change
   useEffect(() => {
     if (!data.length) {
       setFilteredData([]);
       return;
     }
-
     let flatData = data.map(flattenRecord);
 
     const sd = searchDate.trim();
     const se = searchEmpId.trim().toLowerCase();
     const sdept = searchDept.trim().toLowerCase();
 
-    // 1) No search: show latest date per employee only, sorted desc by date
     if (!sd && !se && !sdept) {
       const latestMap = new Map();
       flatData.forEach(record => {
@@ -190,7 +243,6 @@ const PerformanceView = () => {
       return;
     }
 
-    // 2) Search by Date only (empId and dept empty): show all employees who submitted that date, only basic fields
     if (sd && !se && !sdept) {
       const filtered = flatData.filter(r => r.date.trim() === sd);
       filtered.sort((a, b) => a.employeeId.localeCompare(b.employeeId));
@@ -198,7 +250,6 @@ const PerformanceView = () => {
       return;
     }
 
-    // 3) Search by Employee ID or Department only (no date): show matching plus dept fields
     if (!sd && (se || sdept)) {
       const filtered = flatData.filter(r => {
         const empMatch = se ? r.employeeId.toLowerCase().includes(se) : true;
@@ -210,7 +261,6 @@ const PerformanceView = () => {
       return;
     }
 
-    // 4) Search by Employee ID or Department + Date: filter all three
     if (sd && (se || sdept)) {
       const filtered = flatData.filter(r => {
         const empMatch = se ? r.employeeId.toLowerCase().includes(se) : true;
@@ -227,10 +277,8 @@ const PerformanceView = () => {
   const showDeptFields =
     (searchEmpId.trim() !== '' || searchDept.trim() !== '') &&
     true;
-
   const showOnlyBasicFields = searchDate.trim() !== '' && searchEmpId.trim() === '' && searchDept.trim() === '';
 
-  // Determine columns to display
   let columns = ['Employee ID', 'Department', 'Date'];
   if (!showOnlyBasicFields && showDeptFields && filteredData.length) {
     const depts = Array.from(new Set(filteredData.map(r => r.department)));
@@ -254,16 +302,48 @@ const PerformanceView = () => {
           Master Database
         </button>
         <button
-          onClick={() => window.open(GF1_URL, '_blank')}
-          style={styles.navButton}
+        onClick={() => window.open('/admin/form-page', '_blank')}
+        style={styles.navButton}
         >
           Create / Delete / Update
         </button>
         <button style={styles.navButton} disabled>View Performance</button>
       </nav>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <select onChange={(e) => downloadZip(e.target.value)}>
+          <option value="">Download Report</option>
+          {reportOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
       <div style={styles.searchBar}>
         <h2 style={styles.heading}>Performance Records</h2>
+
+        {!viewAll && (
+          <>
+            <label style={styles.label}>Select Month:</label>
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => { setMonth(e.target.value); setPage(1); }}
+              style={styles.input}
+            />
+          </>
+        )}
+        <br/>
+
+        <button
+          style={{ ...styles.navButton, backgroundColor: viewAll ? '#16A34A' : '#B91C1C' }}
+          onClick={() => { setViewAll(!viewAll); setPage(1); }}
+        >
+          {viewAll ? 'Switch to Month View' : 'View All Records'}
+        </button>
+        <br/>
+        <br/>
+
         <label style={styles.label} htmlFor="searchDate">Search by Date (DD/MM/YYYY):</label>
         <input
           style={styles.input}
@@ -300,28 +380,50 @@ const PerformanceView = () => {
       {!loading && !error && filteredData.length === 0 && <p>No performance records found.</p>}
 
       {!loading && !error && filteredData.length > 0 && (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              {columns.map(col => (
-                <th key={col} style={styles.th}>{col}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((row, idx) => (
-              <tr key={idx}>
-                <td style={styles.td}>{row.employeeId}</td>
-                <td style={styles.td}>{row.department}</td>
-                <td style={styles.td}>{row.date}</td>
-                {!showOnlyBasicFields &&
-                  columns.slice(3).map(field => (
-                    <td key={field} style={styles.td}>{row[field] ?? ''}</td>
-                  ))}
+        <>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                {columns.map(col => (
+                  <th key={col} style={styles.th}>{col}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredData.map((row, idx) => (
+                <tr key={idx}>
+                  <td style={styles.td}>{row.employeeId}</td>
+                  <td style={styles.td}>{row.department}</td>
+                  <td style={styles.td}>{row.date}</td>
+                  {!showOnlyBasicFields &&
+                    columns.slice(3).map(field => (
+                      <td key={field} style={styles.td}>{row[field] ?? ''}</td>
+                    ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {!viewAll && (
+            <div style={styles.pagination}>
+              <button
+                style={page > 1 ? styles.pageButton : styles.pageButtonDisabled}
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+              >
+                Prev
+              </button>
+              <span>Page {page} of {totalPages}</span>
+              <button
+                style={page < totalPages ? styles.pageButton : styles.pageButtonDisabled}
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
