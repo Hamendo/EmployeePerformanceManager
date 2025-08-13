@@ -104,7 +104,7 @@ const AdminDashboard = () => {
       <nav style={styles.nav}>
         <button style={styles.navButton} disabled>Master Database</button>
         <button
-          onClick={() => window.open(GF1_URL, '_blank')}
+          onClick={() => window.open('/admin/form-page', '_blank')}
           style={styles.navButton}
         >
           Create / Delete / Update
