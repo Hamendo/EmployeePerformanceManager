@@ -302,7 +302,7 @@ const PerformanceView = () => {
           Master Database
         </button>
         <button
-        onClick={() => window.open(`${window.location.origin}/admin/form-page`, '_blank')}
+        onClick={() => window.open(`#/admin/form-page`, '_blank')}
         style={styles.navButton}
         >
           Create / Delete / Update
