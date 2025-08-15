@@ -204,7 +204,8 @@ const PerformanceView = () => {
     axios.get(`${import.meta.env.VITE_API_URL}/api/performance`, { params })
       .then(res => {
         const json = res.data;
-        setData(Array.isArray(json.data) ? json.data : []);
+        const arr = Array.isArray(json) ? json : json.data;
+        setData(Array.isArray(arr) ? arr : []);
         setTotalPages(json.totalPages || 1);
         setLoading(false);
       })
