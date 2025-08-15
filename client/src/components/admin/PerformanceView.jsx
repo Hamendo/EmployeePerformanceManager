@@ -131,6 +131,128 @@ function parseDateString(dateStr) {
   return new Date(Number(year), Number(month) - 1, Number(day));
 }
 
+/** EXACT backend -> frontend mapping to the strings in DEPT_FIELDS */
+const FIELD_MAP = {
+  reservations: {
+    bookingRequestsProcessed: 'Reservation - No of Booking Requests Processed ',
+    confirmationsUpdated: 'Reservation - No of Confirmations Updated',
+    cancellations: 'Reservation - No of Cancellations ',
+    amendmentsMade: 'Reservation - No. of Amendments Made ',
+    reconfirmationsMade: 'Reservation - No of Reconfirmations Made ',
+    remarks: 'Reservation - Remarks ',
+  },
+  tajBhutan: {
+    bhutanAirBookingProcessed: 'Taj/Bhutan - No. of Bhutan Air Booking Processed ',
+    confirmedBhutanAirTickets: 'Taj/Bhutan - No of Confirmed Bhutan Air Tickets ',
+    tajHotelsBookingProcessed: 'Taj/Bhutan - No of Taj Hotels Booking Processed ',
+    confirmedBookings: 'Taj/Bhutan - No of Confirmed bookings ',
+    cancellations: 'Taj/Bhutan - No of Cancellations ',
+    amendmentsMade: 'Taj/Bhutan - No of Amendments made',
+    reconfirmationsMade: 'Taj/Bhutan - No of Reconfirmations made',
+    remarks: 'Taj/Bhutan - Remarks ',
+  },
+  salesOnline: {
+    enquiriesReceived: 'Sales Online - No of Enquiries Received ',
+    conversions: 'Sales Online - No of Conversions ',
+    followUpsTaken: 'Sales Online - No of Follow-Ups Taken ',
+    cancellations: 'Sales Online - No of Cancellations ',
+    remarks: 'Sales Online - Remarks ',
+  },
+  salesGroup: {
+    enquiriesReceived: 'Sales Group - No of Enquiries Received ',
+    conversionsMade: 'Sales Group - No of Conversions Made ',
+    followUpsTaken: 'Sales Group - No of Follow-Ups Taken ',
+    cancellations: 'Sales Group - No of Cancellations ',
+    amendmentsMade: 'Sales Group - No of Amendments Made ',
+    remarks: 'Sales Group - Remarks ',
+  },
+  it: {
+    entriesMade: 'IT - No of Entries Made ',
+    amendmentsMade: 'IT - No. of Amendments Made ',
+    callsOrEmailsMade: 'IT - No of Calls/Emails Made ',
+    creativesMade: 'IT - No of Creatives Made ',
+    remarks: 'IT - Remarks ',
+  },
+  hr: {
+    interviewsTaken: 'HR - Number of Interviews Taken ',
+    jobOffersExtended: 'HR - Number of Job Offers Extended ',
+    leaveRequestsReceived: 'HR - How many Leave Requests Received Today ',
+    grievancesAddressed: 'HR - Number of Employee Grievances Addressed ',
+    salaryProcessing: 'HR - Number of Salary Processing ',
+    payrollProcessing: 'HR - Payroll Processing ',
+    exitInterviewsConducted: 'HR - Were any Exit Interviews Conducted Today ',
+    retentionEffortsMade: 'HR - Were any Retention Efforts Made (at risk of leaving) ',
+    remarks: 'HR - Remarks ',
+  },
+  accounts: {
+    customerPaymentsProcessed: 'Accounts - Number of Customer Payments Processed ',
+    taxFilingsPreparedReviewed: 'Accounts - Number of Tax Filings Prepared/Reviewed ',
+    transactionsRecorded: 'Accounts - Number of transactions recorded in the accounting system',
+    vendorInvoicesProcessed: 'Accounts - Number of vendor invoices processed',
+    remarks: 'Accounts - Remarks ',
+  },
+};
+
+const BASE_TOP_LEVEL_KEYS = new Set([
+  'timestamp', 'date', 'employeeId', 'empId', 'location', 'department',
+  'reservations', 'tajBhutan', 'salesOnline', 'salesGroup', 'it', 'hr', 'accounts',
+  'graphicDesignerSummary', 'othersSummary', '_id', '__v', 'createdAt', 'updatedAt'
+]);
+
+// Build a canonical map of all valid labels (from DEPT_FIELDS) for robust top-level passthrough
+const ALL_CANON_LABELS = Object.values(DEPT_FIELDS).flat();
+const normalize = (s) =>
+  (s || '')
+    .toLowerCase()
+    .replace(/\s+/g, '')        // remove all spaces
+    .replace(/[^\w]/g, '');     // strip non-word chars (.,-/() etc.)
+
+const CANON_LOOKUP = ALL_CANON_LABELS.reduce((acc, label) => {
+  acc[normalize(label)] = label; // normalized -> canonical
+  acc[normalize(label.trim())] = label; // also map trimmed version
+  return acc;
+}, {});
+
+/** Flatten that supports BOTH nested schema and legacy top-level labels */
+const flattenRecord = (perf) => {
+  const row = {
+    employeeId: perf.empId || perf.employeeId || '',
+    department: perf.department || '',
+    date: (perf.date || '').trim(),
+  };
+
+  // 1) Passthrough for legacy documents that store human-readable labels at top-level
+  Object.keys(perf).forEach((k) => {
+    if (BASE_TOP_LEVEL_KEYS.has(k)) return;
+    const canon = CANON_LOOKUP[normalize(k)];
+    if (canon) {
+      row[canon] = perf[k] ?? row[canon]; // only set if present
+    }
+  });
+
+  // 2) Map nested schema values onto the exact display labels (overrides legacy if both exist)
+  Object.keys(FIELD_MAP).forEach((section) => {
+    const sectionObj = perf[section];
+    if (!sectionObj) return;
+    Object.entries(FIELD_MAP[section]).forEach(([backendKey, frontendLabel]) => {
+      const val = sectionObj[backendKey];
+      if (val !== undefined && val !== null && val !== '') {
+        row[frontendLabel] = val;
+      }
+    });
+  });
+
+  // 3) Summaries
+  if (perf.graphicDesignerSummary !== undefined) {
+    row['Graphic Designer - Give a summary for the day'] = perf.graphicDesignerSummary ?? '';
+  }
+  if (perf.othersSummary !== undefined) {
+    row['Others - Give a summary for the day'] = perf.othersSummary ?? '';
+  }
+
+  return row;
+};
+
 const PerformanceView = () => {
   const navigate = useNavigate();
 
@@ -180,19 +302,6 @@ const PerformanceView = () => {
       .catch(err => console.error('Download failed', err));
   };
 
-  const flattenRecord = (perf) => {
-    const row = {
-      employeeId: perf.empId || perf.employeeId,
-      department: perf.department,
-      date: perf.date,
-    };
-    Object.keys(perf).forEach(k => {
-      if (['empId', 'employeeId', 'department', 'date'].includes(k)) return;
-      row[k] = perf[k];
-    });
-    return row;
-  };
-
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -201,12 +310,14 @@ const PerformanceView = () => {
       ? { viewAll: true }
       : { month, page, limit: pageSize };
 
-    axios.get(`${import.meta.env.VITE_API_URL}/api/performance`, { params })
+    const apiUrl = `${import.meta.env.VITE_API_URL}/api/performance`;
+    axios.get(apiUrl, { params })
       .then(res => {
         const json = res.data;
-        const arr = Array.isArray(json) ? json : json.data;
-        setData(Array.isArray(arr) ? arr : []);
-        setTotalPages(json.totalPages || 1);
+        // Accept either bare array OR { data, totalPages }
+        const arr = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+        setData(arr);
+        setTotalPages(!viewAll ? (Array.isArray(json) ? 1 : (json.totalPages || 1)) : 1);
         setLoading(false);
       })
       .catch(err => {
@@ -221,7 +332,8 @@ const PerformanceView = () => {
       setFilteredData([]);
       return;
     }
-    let flatData = data.map(flattenRecord);
+
+    const flatData = data.map(flattenRecord);
 
     const sd = searchDate.trim();
     const se = searchEmpId.trim().toLowerCase();
@@ -245,16 +357,16 @@ const PerformanceView = () => {
     }
 
     if (sd && !se && !sdept) {
-      const filtered = flatData.filter(r => r.date.trim() === sd);
-      filtered.sort((a, b) => a.employeeId.localeCompare(b.employeeId));
+      const filtered = flatData.filter(r => (r.date || '').trim() === sd);
+      filtered.sort((a, b) => (a.employeeId || '').localeCompare(b.employeeId || ''));
       setFilteredData(filtered);
       return;
     }
 
     if (!sd && (se || sdept)) {
       const filtered = flatData.filter(r => {
-        const empMatch = se ? r.employeeId.toLowerCase().includes(se) : true;
-        const deptMatch = sdept ? r.department.toLowerCase().includes(sdept) : true;
+        const empMatch = se ? (r.employeeId || '').toLowerCase().includes(se) : true;
+        const deptMatch = sdept ? (r.department || '').toLowerCase().includes(sdept) : true;
         return empMatch && deptMatch;
       });
       filtered.sort((a, b) => parseDateString(b.date) - parseDateString(a.date));
@@ -264,9 +376,9 @@ const PerformanceView = () => {
 
     if (sd && (se || sdept)) {
       const filtered = flatData.filter(r => {
-        const empMatch = se ? r.employeeId.toLowerCase().includes(se) : true;
-        const deptMatch = sdept ? r.department.toLowerCase().includes(sdept) : true;
-        const dateMatch = r.date.trim() === sd;
+        const empMatch = se ? (r.employeeId || '').toLowerCase().includes(se) : true;
+        const deptMatch = sdept ? (r.department || '').toLowerCase().includes(sdept) : true;
+        const dateMatch = (r.date || '').trim() === sd;
         return empMatch && deptMatch && dateMatch;
       });
       filtered.sort((a, b) => parseDateString(b.date) - parseDateString(a.date));
@@ -303,8 +415,8 @@ const PerformanceView = () => {
           Master Database
         </button>
         <button
-        onClick={() => window.open(`#/admin/form-page`, '_blank')}
-        style={styles.navButton}
+          onClick={() => window.open('#/admin/form-page', '_blank')}
+          style={styles.navButton}
         >
           Create / Delete / Update
         </button>
