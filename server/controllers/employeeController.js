@@ -152,7 +152,7 @@ const getEmployeeById = async (req, res) => {
     });
 
     const employee = rows.find(emp =>
-      String(emp['Employee ID']) === String(employeeId) &&
+      String(emp['Employee ID']).toLowerCase() === String(employeeId).toLowerCase() &&
       String(emp['Status']).trim().toLowerCase() === 'active'
     );
 
