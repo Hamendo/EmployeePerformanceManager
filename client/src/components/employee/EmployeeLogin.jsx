@@ -10,6 +10,12 @@ const EmployeeLogin = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const handleChange = (e) => {
+    // Allow only A-Z, a-z, 0-9, '/', '-', '\'
+    const value = e.target.value.replace(/[^a-zA-Z0-9\/\\-]/g, '');
+    setEmpId(value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -19,8 +25,16 @@ const EmployeeLogin = () => {
       return;
     }
 
+    // Double-check validation before sending
+    if (!/^[a-zA-Z0-9\/\\-]+$/.test(empId.trim())) {
+      setError('Invalid Employee ID format');
+      return;
+    }
+
     try {
-      const encodedEmpId = empId.trim();
+      let encodedEmpId = empId.trim();
+      // Convert '-' and '\' into '/'
+      encodedEmpId = encodedEmpId.replace(/[-\\]/g, '/');
 
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`, {
         params: { employeeId: encodedEmpId },
@@ -87,7 +101,7 @@ const EmployeeLogin = () => {
             type="text"
             id="empId"
             value={empId}
-            onChange={(e) => setEmpId(e.target.value)}
+            onChange={handleChange}
             style={{
               width: '100%',
               padding: '0.5rem',
