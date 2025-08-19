@@ -10,17 +10,12 @@ const EmployeeLogin = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Optional: preload valid employee IDs for instant client-side validation
   const [validIds, setValidIds] = useState(new Set());
   const [isPreloading, setIsPreloading] = useState(true);
 
   const navigate = useNavigate();
 
-  // --- helpers ---
-  const normalizeId = (id) =>
-    id.trim().replace(/[-\\]/g, '/'); // convert '-' and '\' to '/'
-
-  // Allow only A-Z, a-z, 0-9, '/', '-', '\'
+  const normalizeId = (id) => id.trim().replace(/[-\\]/g, '/');
   const sanitizeInput = (value) => value.replace(/[^a-zA-Z0-9\/\\-]/g, '');
 
   useEffect(() => {
@@ -30,7 +25,6 @@ const EmployeeLogin = () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee/list`);
         if (!cancelled && res?.data?.success && Array.isArray(res.data.data)) {
-          // Store normalized versions to match what we send on submit
           const set = new Set(
             res.data.data
               .filter((v) => typeof v === 'string')
@@ -39,7 +33,6 @@ const EmployeeLogin = () => {
           setValidIds(set);
         }
       } catch (e) {
-        // Silent fail: we can still log in without the preload
         console.error('Failed to preload employee IDs', e);
       } finally {
         if (!cancelled) setIsPreloading(false);
@@ -68,7 +61,6 @@ const EmployeeLogin = () => {
       return;
     }
 
-    // Final validation of characters (defense-in-depth)
     if (!/^[a-zA-Z0-9\/\\-]+$/.test(raw)) {
       setError('Invalid Employee ID format');
       return;
@@ -76,7 +68,6 @@ const EmployeeLogin = () => {
 
     const encodedEmpId = normalizeId(raw);
 
-    // If we have a preloaded list, verify against it (skipped if preload failed)
     if (validIds.size > 0 && !validIds.has(encodedEmpId)) {
       setError('Employee ID not found');
       return;
@@ -140,62 +131,63 @@ const EmployeeLogin = () => {
           borderRadius: 8,
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           color: '#374151',
+          textAlign: 'center',
         }}
       >
-        <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Employee Login</h2>
+        <h2 style={{ marginBottom: '1.5rem' }}>Employee Login</h2>
 
-        {/* Preload status (non-blocking) */}
-        {isPreloading && (
-          <p style={{ fontSize: '0.9rem', marginBottom: '0.75rem', fontStyle: 'italic' }}>
-            Loading employee list…
-          </p>
-        )}
+        {/* Show loader while preloading */}
+        {isPreloading ? (
+          <p style={{ fontSize: '1rem', fontStyle: 'italic' }}>Loading…</p>
+        ) : (
+          <>
+            <form onSubmit={handleSubmit}>
+              <label htmlFor="empId" style={{ display: 'block', marginBottom: 8, textAlign: 'left' }}>
+                Employee ID
+              </label>
+              <input
+                type="text"
+                id="empId"
+                value={empId}
+                onChange={handleChange}
+                autoComplete="off"
+                spellCheck="false"
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                  marginBottom: '1rem',
+                  fontSize: '1rem',
+                }}
+                required
+              />
 
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="empId" style={{ display: 'block', marginBottom: 8 }}>
-            Employee ID
-          </label>
-          <input
-            type="text"
-            id="empId"
-            value={empId}
-            onChange={handleChange}
-            autoComplete="off"
-            spellCheck="false"
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: 4,
-              border: '1px solid #ccc',
-              marginBottom: '1rem',
-              fontSize: '1rem',
-            }}
-            required
-          />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  backgroundColor: isSubmitting ? '#6c757d' : '#007bff',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 4,
+                  fontWeight: 'bold',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.3s ease',
+                }}
+              >
+                {isSubmitting ? 'Logging in…' : 'Login'}
+              </button>
+            </form>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              backgroundColor: isSubmitting ? '#6c757d' : '#007bff', // color changes after click
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 4,
-              fontWeight: 'bold',
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.3s ease',
-            }}
-          >
-            {isSubmitting ? 'Logging in…' : 'Login'}
-          </button>
-        </form>
-
-        {error && (
-          <p style={{ color: '#B91C1C', marginTop: '1rem', textAlign: 'center' }}>
-            {error}
-          </p>
+            {error && (
+              <p style={{ color: '#B91C1C', marginTop: '1rem' }}>
+                {error}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>
