@@ -160,7 +160,6 @@ const EmployeeLogin = () => {
                   marginBottom: '1rem',
                   fontSize: '1rem',
                 }}
-                placeholder="e.g. ABC-123/45 or ABC\\123"
                 required
               />
 
