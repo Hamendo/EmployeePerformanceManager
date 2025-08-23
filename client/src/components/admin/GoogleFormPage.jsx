@@ -7,7 +7,7 @@ const GoogleFormPage = () => {
   // Fetch alerts from backend
   useEffect(() => {
     const fetchAlerts = () => {
-      fetch("https://employee-manager-p500.onrender.com/api/alerts")
+      fetch(`${import.meta.env.VITE_API_URL}/api/alerts`)
         .then((res) => res.json())
         .then((data) => setAlerts(data))
         .catch((err) => console.error("❌ Failed to load alerts:", err));
