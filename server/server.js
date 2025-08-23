@@ -39,6 +39,7 @@ app.use('/api/webhook', require('./routes/webhookRoute'));
 app.use('/api/performance', require('./routes/performanceRoute'));
 app.use('/api/upload-performance', require('./routes/uploadPerformanceRoute'));
 app.use('/api/employee', require('./routes/employeeRoute'));
+app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/performance-export', require('./routes/performanceExport'));
 
 // 🌐 Root Endpoint
