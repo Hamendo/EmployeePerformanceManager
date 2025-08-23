@@ -14,11 +14,17 @@ const PORT = process.env.PORT || 5000;
 // 🧩 Middleware
 app.use(cors({
   origin: [
-    'http://localhost:3000', 
+    'http://localhost:3000',
     'https://employee-manager-p500.onrender.com'
   ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// ✅ Handle preflight requests for all routes
+app.options('*', cors());
+
 app.use(express.json());
 
 // 🔌 Connect to MongoDB
@@ -26,10 +32,6 @@ connectMongo().then(() => {
   console.log('Currently connected DB:', mongoose.connection.name);
   console.log('Collections:', Object.keys(mongoose.connection.collections));
 });
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-  });
 
 // 🛣️ API Routes
 app.use('/api/admin/master', require('./routes/adminMasterRoute'));
@@ -42,4 +44,9 @@ app.use('/api/performance-export', require('./routes/performanceExport'));
 // 🌐 Root Endpoint
 app.get('/', (req, res) => {
   res.send('🌐 Employee Performance Server Running');
+});
+
+// 🚀 Start Server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
