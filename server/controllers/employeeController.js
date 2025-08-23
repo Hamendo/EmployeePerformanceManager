@@ -132,7 +132,7 @@ const getEmployeeById = async (req, res) => {
 
   try {
     const sheetId = '1syIHQIWvg48i6UECVjRHz6G6F_PXR9avNveCfktZLTM';
-    const sheetName = 'Copy of Master DB';
+    const sheetName = 'Master DB';
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
 
     const response = await axios.get(url);
