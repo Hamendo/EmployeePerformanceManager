@@ -23,7 +23,7 @@ const GoogleFormPage = () => {
       {/* Form container takes 90% of height */}
       <div style={{ flex: "0 0 90%", overflow: "auto" }}>
         <iframe
-          src="https://forms.gle/aC6pbk2d9H5z1wS37"
+          src="https://docs.google.com/forms/d/e/1FAIpQLSckA29iTf4kbtRt6ymr4wN2k9IBo4LS1GOim2tv-mcnVe-8UQ/viewform?embedded=true"
           style={{ width: "100%", height: "100%", border: "none" }}
           allowFullScreen
           title="Google Form"
