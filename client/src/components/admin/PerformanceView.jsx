@@ -4,61 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 console.log(React);
 
-const styles = {
-  container: { padding: '2rem', backgroundColor: '#F8FAFC', color: '#374151', minHeight: '100vh' },
-  heading: { color: '#B91C1C', marginBottom: '1rem' },
-  error: { color: '#B91C1C' },
-  input: {
-    padding: '0.4rem',
-    marginRight: '0.5rem',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-  },
-  nav: {
-    marginBottom: '1rem',
-    display: 'flex',
-    gap: '1rem',
-  },
-  navButton: {
-    backgroundColor: '#B91C1C',
-    color: '#FFFFFF',
-    padding: '0.5rem 1rem',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-  },
-  label: {
-    marginRight: '0.5rem',
-    fontWeight: 'bold',
-  },
-  searchBar: {
-    marginBottom: '1rem',
-  },
-  table: { width: '100%', borderCollapse: 'collapse', backgroundColor: '#FFFFFF' },
-  th: { backgroundColor: '#374151', color: '#FFFFFF', padding: '0.5rem', border: '1px solid #ccc' },
-  td: { padding: '0.5rem', border: '1px solid #ccc' },
-  pagination: {
-    marginTop: '1rem',
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '0.5rem',
-  },
-  pageButton: {
-    padding: '0.4rem 0.8rem',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    background: '#fff',
-  },
-  pageButtonDisabled: {
-    padding: '0.4rem 0.8rem',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-    background: '#eee',
-    color: '#888',
-    cursor: 'not-allowed',
-  }
-};
+// === Constants and helper functions ===
 
 const DEPT_FIELDS = {
   Reservation: [
@@ -69,7 +15,7 @@ const DEPT_FIELDS = {
     'Reservation - No of Reconfirmations Made ',
     'Reservation - Remarks ',
   ],
-  'Bhutan Air Tickets and Taj Hotels': [
+  'Taj/Bhutan': [
     'Taj/Bhutan - No. of Bhutan Air Booking Processed ',
     'Taj/Bhutan - No of Confirmed Bhutan Air Tickets ',
     'Taj/Bhutan - No of Taj Hotels Booking Processed ',
@@ -79,14 +25,14 @@ const DEPT_FIELDS = {
     'Taj/Bhutan - No of Reconfirmations made',
     'Taj/Bhutan - Remarks ',
   ],
-  'Sales(Online)': [
+  'Sales Online': [
     'Sales Online - No of Enquiries Received ',
     'Sales Online - No of Conversions ',
     'Sales Online - No of Follow-Ups Taken ',
     'Sales Online - No of Cancellations ',
     'Sales Online - Remarks ',
   ],
-  'Sales(Group)': [
+  'Sales Group': [
     'Sales Group - No of Enquiries Received ',
     'Sales Group - No of Conversions Made ',
     'Sales Group - No of Follow-Ups Taken ',
@@ -112,26 +58,15 @@ const DEPT_FIELDS = {
     'HR - Were any Retention Efforts Made (at risk of leaving) ',
     'HR - Remarks ',
   ],
-  ACCOUNTS: [
+  Accounts: [
     'Accounts - Number of Customer Payments Processed ',
     'Accounts - Number of Tax Filings Prepared/Reviewed ',
     'Accounts - Number of transactions recorded in the accounting system',
     'Accounts - Number of vendor invoices processed',
     'Accounts - Remarks ',
   ],
-  'Graphic Designer': ['Graphic Designer - Give a summary for the day'],
-  Others: ['Others - Give a summary for the day'],
 };
 
-function parseDateString(dateStr) {
-  if (!dateStr) return new Date(0);
-  const parts = dateStr.trim().split(/[\/\-]/);
-  if (parts.length !== 3) return new Date(dateStr);
-  const [day, month, year] = parts;
-  return new Date(Number(year), Number(month) - 1, Number(day));
-}
-
-/** EXACT backend -> frontend mapping to the strings in DEPT_FIELDS */
 const FIELD_MAP = {
   reservations: {
     bookingRequestsProcessed: 'Reservation - No of Booking Requests Processed ',
@@ -199,21 +134,20 @@ const BASE_TOP_LEVEL_KEYS = new Set([
   'graphicDesignerSummary', 'othersSummary', '_id', '__v', 'createdAt', 'updatedAt'
 ]);
 
-// Build a canonical map of all valid labels (from DEPT_FIELDS) for robust top-level passthrough
 const ALL_CANON_LABELS = Object.values(DEPT_FIELDS).flat();
+
 const normalize = (s) =>
   (s || '')
     .toLowerCase()
-    .replace(/\s+/g, '')        // remove all spaces
-    .replace(/[^\w]/g, '');     // strip non-word chars (.,-/() etc.)
+    .replace(/\s+/g, '')
+    .replace(/[^\w]/g, '');
 
 const CANON_LOOKUP = ALL_CANON_LABELS.reduce((acc, label) => {
-  acc[normalize(label)] = label; // normalized -> canonical
-  acc[normalize(label.trim())] = label; // also map trimmed version
+  acc[normalize(label)] = label;
+  acc[normalize(label.trim())] = label;
   return acc;
 }, {});
 
-/** Flatten that supports BOTH nested schema and legacy top-level labels */
 const flattenRecord = (perf) => {
   const row = {
     employeeId: perf.empId || perf.employeeId || '',
@@ -221,16 +155,14 @@ const flattenRecord = (perf) => {
     date: (perf.date || '').trim(),
   };
 
-  // 1) Passthrough for legacy documents that store human-readable labels at top-level
   Object.keys(perf).forEach((k) => {
     if (BASE_TOP_LEVEL_KEYS.has(k)) return;
     const canon = CANON_LOOKUP[normalize(k)];
     if (canon) {
-      row[canon] = perf[k] ?? row[canon]; // only set if present
+      row[canon] = perf[k] ?? row[canon];
     }
   });
 
-  // 2) Map nested schema values onto the exact display labels (overrides legacy if both exist)
   Object.keys(FIELD_MAP).forEach((section) => {
     const sectionObj = perf[section];
     if (!sectionObj) return;
@@ -242,7 +174,6 @@ const flattenRecord = (perf) => {
     });
   });
 
-  // 3) Summaries
   if (perf.graphicDesignerSummary !== undefined) {
     row['Graphic Designer - Give a summary for the day'] = perf.graphicDesignerSummary ?? '';
   }
@@ -253,25 +184,64 @@ const flattenRecord = (perf) => {
   return row;
 };
 
+const parseDate = (dStr) => {
+  const parts = dStr.split('/');
+  if (parts.length !== 3) return null;
+  const [day, month, year] = parts.map(p => parseInt(p, 10));
+  return new Date(year, month - 1, day);
+};
+
+const styles = {
+  container: { padding: '2rem', backgroundColor: '#F8FAFC', color: '#374151', minHeight: '100vh' },
+  heading: { color: '#B91C1C', marginBottom: '1rem' },
+  error: { color: '#B91C1C' },
+  input: {
+    padding: '0.4rem',
+    marginRight: '0.5rem',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+  },
+  nav: {
+    marginBottom: '1rem',
+    display: 'flex',
+    gap: '1rem',
+  },
+  navButton: {
+    backgroundColor: '#B91C1C',
+    color: '#FFFFFF',
+    padding: '0.5rem 1rem',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+  },
+  label: { marginRight: '0.5rem', fontWeight: 'bold' },
+  searchBar: { marginBottom: '1rem' },
+  table: { width: '100%', borderCollapse: 'collapse', backgroundColor: '#FFFFFF' },
+  th: { backgroundColor: '#374151', color: '#FFFFFF', padding: '0.5rem', border: '1px solid #ccc' },
+  td: { padding: '0.5rem', border: '1px solid #ccc' },
+  pagination: { marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' },
+  pageButton: { padding: '0.4rem 0.8rem', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', background: '#fff' },
+  pageButtonDisabled: { padding: '0.4rem 0.8rem', border: '1px solid #ccc', borderRadius: '4px', background: '#eee', color: '#888', cursor: 'not-allowed' }
+};
+
+const rowsPerPage = 20;
+
 const PerformanceView = () => {
   const navigate = useNavigate();
 
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [displayData, setDisplayData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [searchDate, setSearchDate] = useState('');
   const [searchEmpId, setSearchEmpId] = useState('');
   const [searchDept, setSearchDept] = useState('');
+  const [filterDate, setFilterDate] = useState('');
 
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 20;
+  const [currentMonthLabel, setCurrentMonthLabel] = useState('');
 
   const [viewAll, setViewAll] = useState(false);
 
@@ -285,11 +255,7 @@ const PerformanceView = () => {
   const downloadZip = (period) => {
     if (!period) return;
     const url = `${import.meta.env.VITE_API_URL}/api/performance-export/export-zip`;
-    console.log('Downloading ZIP from:', url, 'with period:', period);
-    axios.get(url, {
-      params: { period },
-      responseType: 'blob'
-    })
+    axios.get(url, { params: { period }, responseType: 'blob' })
       .then(res => {
         const blob = new Blob([res.data]);
         const url = window.URL.createObjectURL(blob);
@@ -306,18 +272,17 @@ const PerformanceView = () => {
     setLoading(true);
     setError('');
 
-    const params = viewAll
-      ? { viewAll: true }
-      : { month, page, limit: pageSize };
+    const params = { page };
+    if (viewAll) params.viewAll = true;
+    if (searchEmpId.trim()) params.empId = searchEmpId.trim();
+    if (searchDept.trim()) params.department = searchDept.trim();
 
-    const apiUrl = `${import.meta.env.VITE_API_URL}/api/performance`;
-    axios.get(apiUrl, { params })
+    axios.get(`${import.meta.env.VITE_API_URL}/api/performance`, { params })
       .then(res => {
         const json = res.data;
-        // Accept either bare array OR { data, totalPages }
-        const arr = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-        setData(arr);
-        setTotalPages(!viewAll ? (Array.isArray(json) ? 1 : (json.totalPages || 1)) : 1);
+        setData(json.data || []);
+        setTotalPages(json.totalPages || 1);
+        setCurrentMonthLabel(json.currentMonth || '');
         setLoading(false);
       })
       .catch(err => {
@@ -325,72 +290,49 @@ const PerformanceView = () => {
         setError('Failed to fetch performance data');
         setLoading(false);
       });
-  }, [month, page, viewAll]);
+  }, [page, searchEmpId, searchDept, viewAll]);
 
   useEffect(() => {
-    if (!data.length) {
-      setFilteredData([]);
-      return;
-    }
+    if (!data.length) { setFilteredData([]); setDisplayData([]); return; }
 
-    const flatData = data.map(flattenRecord);
+    let flatData = data.map(flattenRecord);
 
-    const sd = searchDate.trim();
     const se = searchEmpId.trim().toLowerCase();
     const sdept = searchDept.trim().toLowerCase();
 
-    if (!sd && !se && !sdept) {
-      const latestMap = new Map();
-      flatData.forEach(record => {
-        const key = record.employeeId;
-        if (!key) return;
-        const currDate = parseDateString(record.date);
-        if (!latestMap.has(key) || currDate > parseDateString(latestMap.get(key).date)) {
-          latestMap.set(key, record);
-        }
-      });
-      const latestRecords = Array.from(latestMap.values()).sort(
-        (a, b) => parseDateString(b.date) - parseDateString(a.date)
-      );
-      setFilteredData(latestRecords);
-      return;
+    flatData = flatData.filter(r => {
+      const empMatch = se ? (r.employeeId || '').toLowerCase().includes(se) : true;
+      const deptMatch = sdept ? (r.department || '').toLowerCase().includes(sdept) : true;
+      return empMatch && deptMatch;
+    });
+
+    if (viewAll && filterDate) {
+      const target = parseDate(filterDate);
+      if (target) {
+        flatData = flatData.filter(r => {
+          const d = parseDate(r.date);
+          return d && d.getTime() === target.getTime();
+        });
+      }
     }
 
-    if (sd && !se && !sdept) {
-      const filtered = flatData.filter(r => (r.date || '').trim() === sd);
-      filtered.sort((a, b) => (a.employeeId || '').localeCompare(b.employeeId || ''));
-      setFilteredData(filtered);
-      return;
+    if (viewAll) {
+      const total = Math.ceil(flatData.length / rowsPerPage) || 1;
+      setTotalPages(total);
+      const startIdx = (page - 1) * rowsPerPage;
+      const paginated = flatData.slice(startIdx, startIdx + rowsPerPage);
+      setDisplayData(paginated);
+    } else {
+      setDisplayData(flatData);
+      setTotalPages(1);
+      setPage(1);
     }
 
-    if (!sd && (se || sdept)) {
-      const filtered = flatData.filter(r => {
-        const empMatch = se ? (r.employeeId || '').toLowerCase().includes(se) : true;
-        const deptMatch = sdept ? (r.department || '').toLowerCase().includes(sdept) : true;
-        return empMatch && deptMatch;
-      });
-      filtered.sort((a, b) => parseDateString(b.date) - parseDateString(a.date));
-      setFilteredData(filtered);
-      return;
-    }
+    setFilteredData(flatData);
+  }, [data, searchEmpId, searchDept, filterDate, viewAll, page]);
 
-    if (sd && (se || sdept)) {
-      const filtered = flatData.filter(r => {
-        const empMatch = se ? (r.employeeId || '').toLowerCase().includes(se) : true;
-        const deptMatch = sdept ? (r.department || '').toLowerCase().includes(sdept) : true;
-        const dateMatch = (r.date || '').trim() === sd;
-        return empMatch && deptMatch && dateMatch;
-      });
-      filtered.sort((a, b) => parseDateString(b.date) - parseDateString(a.date));
-      setFilteredData(filtered);
-      return;
-    }
-  }, [data, searchDate, searchEmpId, searchDept]);
-
-  const showDeptFields =
-    (searchEmpId.trim() !== '' || searchDept.trim() !== '') &&
-    true;
-  const showOnlyBasicFields = searchDate.trim() !== '' && searchEmpId.trim() === '' && searchDept.trim() === '';
+  const showDeptFields = (searchEmpId.trim() !== '' || searchDept.trim() !== '') && true;
+  const showOnlyBasicFields = false;
 
   let columns = ['Employee ID', 'Department', 'Date'];
   if (!showOnlyBasicFields && showDeptFields && filteredData.length) {
@@ -408,85 +350,46 @@ const PerformanceView = () => {
       <h2 style={styles.heading}>Admin Dashboard</h2>
 
       <nav style={styles.nav}>
-        <button
-          onClick={() => navigate('/admin/dashboard')}
-          style={styles.navButton}
-        >
-          Master Database
-        </button>
-        <button
-          onClick={() => window.open('#/admin/form-page', '_blank')}
-          style={styles.navButton}
-        >
-          Create / Delete / Update
-        </button>
+        <button onClick={() => navigate('/admin/dashboard')} style={styles.navButton}>Master Database</button>
+        <button onClick={() => window.open('https://forms.gle/EL3UmGLwNKQbuyxt9', '_blank')} style={styles.navButton}>Create / Delete / Update</button>
         <button style={styles.navButton} disabled>View Performance</button>
       </nav>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
         <select onChange={(e) => downloadZip(e.target.value)}>
           <option value="">Download Report</option>
-          {reportOptions.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
+          {reportOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
         </select>
       </div>
 
       <div style={styles.searchBar}>
         <h2 style={styles.heading}>Performance Records</h2>
 
-        {!viewAll && (
-          <>
-            <label style={styles.label}>Select Month:</label>
-            <input
-              type="month"
-              value={month}
-              onChange={(e) => { setMonth(e.target.value); setPage(1); }}
-              style={styles.input}
-            />
-          </>
-        )}
-        <br/>
-
-        <button
-          style={{ ...styles.navButton, backgroundColor: viewAll ? '#16A34A' : '#B91C1C' }}
-          onClick={() => { setViewAll(!viewAll); setPage(1); }}
-        >
+        <button style={{ ...styles.navButton, backgroundColor: viewAll ? '#16A34A' : '#B91C1C' }}
+          onClick={() => { setViewAll(!viewAll); setPage(1); }}>
           {viewAll ? 'Switch to Month View' : 'View All Records'}
         </button>
-        <br/>
-        <br/>
-
-        <label style={styles.label} htmlFor="searchDate">Search by Date (DD/MM/YYYY):</label>
-        <input
-          style={styles.input}
-          id="searchDate"
-          type="text"
-          placeholder="e.g. 05/07/2025"
-          value={searchDate}
-          onChange={e => setSearchDate(e.target.value)}
-        />
+        <br /><br />
 
         <label style={styles.label} htmlFor="searchEmpId">Search by Employee ID:</label>
-        <input
-          style={styles.input}
-          id="searchEmpId"
-          type="text"
-          placeholder="Employee ID"
-          value={searchEmpId}
-          onChange={e => setSearchEmpId(e.target.value)}
-        />
+        <input style={styles.input} id="searchEmpId" type="text" placeholder="Employee ID"
+          value={searchEmpId} onChange={e => { setSearchEmpId(e.target.value); setPage(1); }} />
 
         <label style={styles.label} htmlFor="searchDept">Search by Department:</label>
-        <input
-          style={styles.input}
-          id="searchDept"
-          type="text"
-          placeholder="Department"
-          value={searchDept}
-          onChange={e => setSearchDept(e.target.value)}
-        />
+        <input style={styles.input} id="searchDept" type="text" placeholder="Department"
+          value={searchDept} onChange={e => { setSearchDept(e.target.value); setPage(1); }} />
+
+        {viewAll && (
+          <>
+            <br /><br />
+            <label style={styles.label} htmlFor="filterDate">Filter by Date (DD/MM/YYYY):</label>
+            <input style={styles.input} id="filterDate" type="text" placeholder="DD/MM/YYYY"
+              value={filterDate} onChange={e => { setFilterDate(e.target.value); setPage(1); }} />
+          </>
+        )}
       </div>
+
+      {currentMonthLabel && !viewAll && <h3>Showing data for month: {currentMonthLabel}</h3>}
 
       {loading && <p>Loading performance data...</p>}
       {error && <p style={styles.error}>{error}</p>}
@@ -496,44 +399,29 @@ const PerformanceView = () => {
         <>
           <table style={styles.table}>
             <thead>
-              <tr>
-                {columns.map(col => (
-                  <th key={col} style={styles.th}>{col}</th>
-                ))}
-              </tr>
+              <tr>{columns.map(col => <th key={col} style={styles.th}>{col}</th>)}</tr>
             </thead>
             <tbody>
-              {filteredData.map((row, idx) => (
+              {displayData.map((row, idx) => (
                 <tr key={idx}>
                   <td style={styles.td}>{row.employeeId}</td>
                   <td style={styles.td}>{row.department}</td>
                   <td style={styles.td}>{row.date}</td>
-                  {!showOnlyBasicFields &&
-                    columns.slice(3).map(field => (
-                      <td key={field} style={styles.td}>{row[field] ?? ''}</td>
-                    ))}
+                  {!showOnlyBasicFields && columns.slice(3).map(field => (
+                    <td key={field} style={styles.td}>{row[field] ?? ''}</td>
+                  ))}
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {!viewAll && (
+          {viewAll && (
             <div style={styles.pagination}>
-              <button
-                style={page > 1 ? styles.pageButton : styles.pageButtonDisabled}
-                disabled={page <= 1}
-                onClick={() => setPage(p => p - 1)}
-              >
-                Prev
-              </button>
+              <button style={page > 1 ? styles.pageButton : styles.pageButtonDisabled} disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}>Prev</button>
               <span>Page {page} of {totalPages}</span>
-              <button
-                style={page < totalPages ? styles.pageButton : styles.pageButtonDisabled}
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}
-              >
-                Next
-              </button>
+              <button style={page < totalPages ? styles.pageButton : styles.pageButtonDisabled} disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}>Next</button>
             </div>
           )}
         </>
