@@ -184,13 +184,6 @@ const flattenRecord = (perf) => {
   return row;
 };
 
-const parseDate = (dStr) => {
-  const parts = dStr.split('/');
-  if (parts.length !== 3) return null;
-  const [day, month, year] = parts.map(p => parseInt(p, 10));
-  return new Date(year, month - 1, day);
-};
-
 const styles = {
   container: { padding: '2rem', backgroundColor: '#F8FAFC', color: '#374151', minHeight: '100vh' },
   heading: { color: '#B91C1C', marginBottom: '1rem' },
@@ -214,30 +207,50 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
   },
-  label: { marginRight: '0.5rem', fontWeight: 'bold' },
-  searchBar: { marginBottom: '1rem' },
+  label: {
+    marginRight: '0.5rem',
+    fontWeight: 'bold',
+  },
+  searchBar: {
+    marginBottom: '1rem',
+  },
   table: { width: '100%', borderCollapse: 'collapse', backgroundColor: '#FFFFFF' },
   th: { backgroundColor: '#374151', color: '#FFFFFF', padding: '0.5rem', border: '1px solid #ccc' },
   td: { padding: '0.5rem', border: '1px solid #ccc' },
-  pagination: { marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' },
-  pageButton: { padding: '0.4rem 0.8rem', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', background: '#fff' },
-  pageButtonDisabled: { padding: '0.4rem 0.8rem', border: '1px solid #ccc', borderRadius: '4px', background: '#eee', color: '#888', cursor: 'not-allowed' }
+  pagination: {
+    marginTop: '1rem',
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '0.5rem',
+  },
+  pageButton: {
+    padding: '0.4rem 0.8rem',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    background: '#fff',
+  },
+  pageButtonDisabled: {
+    padding: '0.4rem 0.8rem',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    background: '#eee',
+    color: '#888',
+    cursor: 'not-allowed',
+  }
 };
-
-const rowsPerPage = 20;
 
 const PerformanceView = () => {
   const navigate = useNavigate();
 
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [displayData, setDisplayData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [searchEmpId, setSearchEmpId] = useState('');
   const [searchDept, setSearchDept] = useState('');
-  const [filterDate, setFilterDate] = useState('');
+  const [filterDate, setFilterDate] = useState(''); // single date filter for viewAll
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -255,7 +268,10 @@ const PerformanceView = () => {
   const downloadZip = (period) => {
     if (!period) return;
     const url = `${import.meta.env.VITE_API_URL}/api/performance-export/export-zip`;
-    axios.get(url, { params: { period }, responseType: 'blob' })
+    axios.get(url, {
+      params: { period },
+      responseType: 'blob'
+    })
       .then(res => {
         const blob = new Blob([res.data]);
         const url = window.URL.createObjectURL(blob);
@@ -268,6 +284,7 @@ const PerformanceView = () => {
       .catch(err => console.error('Download failed', err));
   };
 
+  // === Fetch Data ===
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -281,7 +298,7 @@ const PerformanceView = () => {
       .then(res => {
         const json = res.data;
         setData(json.data || []);
-        setTotalPages(json.totalPages || 1);
+        setTotalPages(viewAll ? 1 : (json.totalPages || 1));
         setCurrentMonthLabel(json.currentMonth || '');
         setLoading(false);
       })
@@ -292,44 +309,27 @@ const PerformanceView = () => {
       });
   }, [page, searchEmpId, searchDept, viewAll]);
 
+  // === Filter & Flatten ===
   useEffect(() => {
-    if (!data.length) { setFilteredData([]); setDisplayData([]); return; }
+    if (!data.length) {
+      setFilteredData([]);
+      return;
+    }
 
     let flatData = data.map(flattenRecord);
 
-    const se = searchEmpId.trim().toLowerCase();
-    const sdept = searchDept.trim().toLowerCase();
-
-    flatData = flatData.filter(r => {
-      const empMatch = se ? (r.employeeId || '').toLowerCase().includes(se) : true;
-      const deptMatch = sdept ? (r.department || '').toLowerCase().includes(sdept) : true;
-      return empMatch && deptMatch;
-    });
-
-    if (viewAll && filterDate) {
-      const target = parseDate(filterDate);
-      if (target) {
-        flatData = flatData.filter(r => {
-          const d = parseDate(r.date);
-          return d && d.getTime() === target.getTime();
-        });
-      }
-    }
-
     if (viewAll) {
-      const total = Math.ceil(flatData.length / rowsPerPage) || 1;
-      setTotalPages(total);
-      const startIdx = (page - 1) * rowsPerPage;
-      const paginated = flatData.slice(startIdx, startIdx + rowsPerPage);
-      setDisplayData(paginated);
-    } else {
-      setDisplayData(flatData);
-      setTotalPages(1);
-      setPage(1);
+      // Apply frontend filters for viewAll
+      flatData = flatData.filter(r => {
+        const empMatch = searchEmpId.trim() ? (r.employeeId || '').toLowerCase().includes(searchEmpId.trim().toLowerCase()) : true;
+        const deptMatch = searchDept.trim() ? (r.department || '').toLowerCase().includes(searchDept.trim().toLowerCase()) : true;
+        const dateMatch = filterDate.trim() ? r.date === filterDate.trim() : true;
+        return empMatch && deptMatch && dateMatch;
+      });
     }
 
     setFilteredData(flatData);
-  }, [data, searchEmpId, searchDept, filterDate, viewAll, page]);
+  }, [data, searchEmpId, searchDept, filterDate, viewAll]);
 
   const showDeptFields = (searchEmpId.trim() !== '' || searchDept.trim() !== '') && true;
   const showOnlyBasicFields = false;
@@ -358,38 +358,57 @@ const PerformanceView = () => {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
         <select onChange={(e) => downloadZip(e.target.value)}>
           <option value="">Download Report</option>
-          {reportOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          {reportOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
         </select>
       </div>
 
       <div style={styles.searchBar}>
         <h2 style={styles.heading}>Performance Records</h2>
 
-        <button style={{ ...styles.navButton, backgroundColor: viewAll ? '#16A34A' : '#B91C1C' }}
-          onClick={() => { setViewAll(!viewAll); setPage(1); }}>
+        <button
+          style={{ ...styles.navButton, backgroundColor: viewAll ? '#16A34A' : '#B91C1C' }}
+          onClick={() => { setViewAll(!viewAll); setPage(1); }}
+        >
           {viewAll ? 'Switch to Month View' : 'View All Records'}
         </button>
         <br /><br />
 
         <label style={styles.label} htmlFor="searchEmpId">Search by Employee ID:</label>
-        <input style={styles.input} id="searchEmpId" type="text" placeholder="Employee ID"
-          value={searchEmpId} onChange={e => { setSearchEmpId(e.target.value); setPage(1); }} />
+        <input
+          style={styles.input}
+          id="searchEmpId"
+          type="text"
+          placeholder="Employee ID"
+          value={searchEmpId}
+          onChange={e => { setSearchEmpId(e.target.value); setPage(1); }}
+        />
 
         <label style={styles.label} htmlFor="searchDept">Search by Department:</label>
-        <input style={styles.input} id="searchDept" type="text" placeholder="Department"
-          value={searchDept} onChange={e => { setSearchDept(e.target.value); setPage(1); }} />
+        <input
+          style={styles.input}
+          id="searchDept"
+          type="text"
+          placeholder="Department"
+          value={searchDept}
+          onChange={e => { setSearchDept(e.target.value); setPage(1); }}
+        />
 
         {viewAll && (
           <>
-            <br /><br />
             <label style={styles.label} htmlFor="filterDate">Filter by Date (DD/MM/YYYY):</label>
-            <input style={styles.input} id="filterDate" type="text" placeholder="DD/MM/YYYY"
-              value={filterDate} onChange={e => { setFilterDate(e.target.value); setPage(1); }} />
+            <input
+              style={styles.input}
+              id="filterDate"
+              type="text"
+              placeholder="DD/MM/YYYY"
+              value={filterDate}
+              onChange={e => setFilterDate(e.target.value)}
+            />
           </>
         )}
       </div>
 
-      {currentMonthLabel && !viewAll && <h3>Showing data for month: {currentMonthLabel}</h3>}
+      {currentMonthLabel && !viewAll && (<h3>Showing data for month: {currentMonthLabel}</h3>)}
 
       {loading && <p>Loading performance data...</p>}
       {error && <p style={styles.error}>{error}</p>}
@@ -399,29 +418,43 @@ const PerformanceView = () => {
         <>
           <table style={styles.table}>
             <thead>
-              <tr>{columns.map(col => <th key={col} style={styles.th}>{col}</th>)}</tr>
+              <tr>{columns.map(col => (<th key={col} style={styles.th}>{col}</th>))}</tr>
             </thead>
             <tbody>
-              {displayData.map((row, idx) => (
+              {filteredData.map((row, idx) => (
                 <tr key={idx}>
                   <td style={styles.td}>{row.employeeId}</td>
                   <td style={styles.td}>{row.department}</td>
                   <td style={styles.td}>{row.date}</td>
-                  {!showOnlyBasicFields && columns.slice(3).map(field => (
-                    <td key={field} style={styles.td}>{row[field] ?? ''}</td>
-                  ))}
+                  {!showOnlyBasicFields &&
+                    columns.slice(3).map(field => (<td key={field} style={styles.td}>{row[field] ?? ''}</td>))
+                  }
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {viewAll && (
+          {viewAll ? (
             <div style={styles.pagination}>
-              <button style={page > 1 ? styles.pageButton : styles.pageButtonDisabled} disabled={page <= 1}
-                onClick={() => setPage(p => p - 1)}>Prev</button>
+              <span>Total Records: {filteredData.length}</span>
+            </div>
+          ) : (
+            <div style={styles.pagination}>
+              <button
+                style={page > 1 ? styles.pageButton : styles.pageButtonDisabled}
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+              >
+                Prev
+              </button>
               <span>Page {page} of {totalPages}</span>
-              <button style={page < totalPages ? styles.pageButton : styles.pageButtonDisabled} disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}>Next</button>
+              <button
+                style={page < totalPages ? styles.pageButton : styles.pageButtonDisabled}
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </button>
             </div>
           )}
         </>
