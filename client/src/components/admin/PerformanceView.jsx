@@ -258,6 +258,8 @@ const PerformanceView = () => {
 
   const [viewAll, setViewAll] = useState(false);
 
+  const DEPT_OPTIONS = Object.keys(DEPT_FIELDS);
+
   const reportOptions = [
     { label: 'Last 3 Months', value: 'last3months' },
     { label: 'Last Month', value: 'lastmonth' },
@@ -319,10 +321,9 @@ const PerformanceView = () => {
     let flatData = data.map(flattenRecord);
 
     if (viewAll) {
-      // Apply frontend filters for viewAll
       flatData = flatData.filter(r => {
         const empMatch = searchEmpId.trim() ? (r.employeeId || '').toLowerCase().includes(searchEmpId.trim().toLowerCase()) : true;
-        const deptMatch = searchDept.trim() ? (r.department || '').toLowerCase().includes(searchDept.trim().toLowerCase()) : true;
+        const deptMatch = searchDept.trim() ? (r.department || '').toLowerCase() === searchDept.trim().toLowerCase() : true;
         const dateMatch = filterDate.trim() ? r.date === filterDate.trim() : true;
         return empMatch && deptMatch && dateMatch;
       });
@@ -384,14 +385,15 @@ const PerformanceView = () => {
         />
 
         <label style={styles.label} htmlFor="searchDept">Search by Department:</label>
-        <input
+        <select
           style={styles.input}
           id="searchDept"
-          type="text"
-          placeholder="Department"
           value={searchDept}
           onChange={e => { setSearchDept(e.target.value); setPage(1); }}
-        />
+        >
+          <option value="">All Departments</option>
+          {DEPT_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
 
         {viewAll && (
           <>
