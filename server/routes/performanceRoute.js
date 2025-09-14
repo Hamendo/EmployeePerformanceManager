@@ -34,7 +34,9 @@ router.get('/', async (req, res) => {
 
       const filter = {};
       if (empId) filter.employeeId = empId;
-      if (department) filter.department = department;
+      if (department) {
+        filter.department = { $regex: new RegExp(`^${department}$`, 'i') };
+      }
 
       if (month) {
         let monthNum, yearNum;
