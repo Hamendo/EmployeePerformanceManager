@@ -386,7 +386,7 @@ const PerformanceView = () => {
           type="text"
           placeholder="Employee ID"
           value={searchEmpId}
-          onChange={e => { setSearchEmpId(e.target.value); setPage(1); }}
+          onChange={e => { setSearchEmpId(e.target.value.toUpperCase()); setPage(1); }}
         />
 
         <label style={styles.label} htmlFor="searchDept">Filter by Department:</label>
