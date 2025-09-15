@@ -1,7 +1,7 @@
 // server/routes/performanceRoute.js
 const express = require('express');
 const router = express.Router();
-const Performance = require('../models/performance');
+const Performance = require('../models/Performance');
 
 // --- Helper: Flatten record strictly ----
 function flattenRecord(doc, { department, empId }) {
