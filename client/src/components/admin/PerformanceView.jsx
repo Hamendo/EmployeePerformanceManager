@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 
 console.log(React);
 
-// === Department Fields ===
+// === Constants and helper functions ===
+
 const DEPT_FIELDS = {
   Reservation: [
     'Reservation - No of Booking Requests Processed ',
@@ -66,7 +67,123 @@ const DEPT_FIELDS = {
   ],
 };
 
-// === Styles ===
+const FIELD_MAP = {
+  reservations: {
+    bookingRequestsProcessed: 'Reservation - No of Booking Requests Processed ',
+    confirmationsUpdated: 'Reservation - No of Confirmations Updated',
+    cancellations: 'Reservation - No of Cancellations ',
+    amendmentsMade: 'Reservation - No. of Amendments Made ',
+    reconfirmationsMade: 'Reservation - No of Reconfirmations Made ',
+    remarks: 'Reservation - Remarks ',
+  },
+  tajBhutan: {
+    bhutanAirBookingProcessed: 'Taj/Bhutan - No. of Bhutan Air Booking Processed ',
+    confirmedBhutanAirTickets: 'Taj/Bhutan - No of Confirmed Bhutan Air Tickets ',
+    tajHotelsBookingProcessed: 'Taj/Bhutan - No of Taj Hotels Booking Processed ',
+    confirmedBookings: 'Taj/Bhutan - No of Confirmed bookings ',
+    cancellations: 'Taj/Bhutan - No of Cancellations ',
+    amendmentsMade: 'Taj/Bhutan - No of Amendments made',
+    reconfirmationsMade: 'Taj/Bhutan - No of Reconfirmations made',
+    remarks: 'Taj/Bhutan - Remarks ',
+  },
+  salesOnline: {
+    enquiriesReceived: 'Sales Online - No of Enquiries Received ',
+    conversions: 'Sales Online - No of Conversions ',
+    followUpsTaken: 'Sales Online - No of Follow-Ups Taken ',
+    cancellations: 'Sales Online - No of Cancellations ',
+    remarks: 'Sales Online - Remarks ',
+  },
+  salesGroup: {
+    enquiriesReceived: 'Sales Group - No of Enquiries Received ',
+    conversionsMade: 'Sales Group - No of Conversions Made ',
+    followUpsTaken: 'Sales Group - No of Follow-Ups Taken ',
+    cancellations: 'Sales Group - No of Cancellations ',
+    amendmentsMade: 'Sales Group - No of Amendments Made ',
+    remarks: 'Sales Group - Remarks ',
+  },
+  it: {
+    entriesMade: 'IT - No of Entries Made ',
+    amendmentsMade: 'IT - No. of Amendments Made ',
+    callsOrEmailsMade: 'IT - No of Calls/Emails Made ',
+    creativesMade: 'IT - No of Creatives Made ',
+    remarks: 'IT - Remarks ',
+  },
+  hr: {
+    interviewsTaken: 'HR - Number of Interviews Taken ',
+    jobOffersExtended: 'HR - Number of Job Offers Extended ',
+    leaveRequestsReceived: 'HR - How many Leave Requests Received Today ',
+    grievancesAddressed: 'HR - Number of Employee Grievances Addressed ',
+    salaryProcessing: 'HR - Number of Salary Processing ',
+    payrollProcessing: 'HR - Payroll Processing ',
+    exitInterviewsConducted: 'HR - Were any Exit Interviews Conducted Today ',
+    retentionEffortsMade: 'HR - Were any Retention Efforts Made (at risk of leaving) ',
+    remarks: 'HR - Remarks ',
+  },
+  accounts: {
+    customerPaymentsProcessed: 'Accounts - Number of Customer Payments Processed ',
+    taxFilingsPreparedReviewed: 'Accounts - Number of Tax Filings Prepared/Reviewed ',
+    transactionsRecorded: 'Accounts - Number of transactions recorded in the accounting system',
+    vendorInvoicesProcessed: 'Accounts - Number of vendor invoices processed',
+    remarks: 'Accounts - Remarks ',
+  },
+};
+
+const BASE_TOP_LEVEL_KEYS = new Set([
+  'timestamp', 'date', 'employeeId', 'empId', 'location', 'department',
+  'reservations', 'tajBhutan', 'salesOnline', 'salesGroup', 'it', 'hr', 'accounts',
+  'graphicDesignerSummary', 'othersSummary', '_id', '__v', 'createdAt', 'updatedAt'
+]);
+
+const ALL_CANON_LABELS = Object.values(DEPT_FIELDS).flat();
+
+const normalize = (s) =>
+  (s || '')
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^\w]/g, '');
+
+const CANON_LOOKUP = ALL_CANON_LABELS.reduce((acc, label) => {
+  acc[normalize(label)] = label;
+  acc[normalize(label.trim())] = label;
+  return acc;
+}, {});
+
+const flattenRecord = (perf) => {
+  const row = {
+    employeeId: perf.empId || perf.employeeId || '',
+    department: perf.department || '',
+    date: (perf.date || '').trim(),
+  };
+
+  Object.keys(perf).forEach((k) => {
+    if (BASE_TOP_LEVEL_KEYS.has(k)) return;
+    const canon = CANON_LOOKUP[normalize(k)];
+    if (canon) {
+      row[canon] = perf[k] ?? row[canon];
+    }
+  });
+
+  Object.keys(FIELD_MAP).forEach((section) => {
+    const sectionObj = perf[section];
+    if (!sectionObj) return;
+    Object.entries(FIELD_MAP[section]).forEach(([backendKey, frontendLabel]) => {
+      const val = sectionObj[backendKey];
+      if (val !== undefined && val !== null && val !== '') {
+        row[frontendLabel] = val;
+      }
+    });
+  });
+
+  if (perf.graphicDesignerSummary !== undefined) {
+    row['Graphic Designer - Give a summary for the day'] = perf.graphicDesignerSummary ?? '';
+  }
+  if (perf.othersSummary !== undefined) {
+    row['Others - Give a summary for the day'] = perf.othersSummary ?? '';
+  }
+
+  return row;
+};
+
 const styles = {
   container: { padding: '2rem', backgroundColor: '#F8FAFC', color: '#374151', minHeight: '100vh' },
   heading: { color: '#B91C1C', marginBottom: '1rem' },
@@ -123,7 +240,6 @@ const styles = {
   }
 };
 
-// === Component ===
 const PerformanceView = () => {
   const navigate = useNavigate();
 
@@ -134,15 +250,13 @@ const PerformanceView = () => {
 
   const [searchEmpId, setSearchEmpId] = useState('');
   const [searchDept, setSearchDept] = useState('');
-  const [filterDate, setFilterDate] = useState('');
+  const [filterDate, setFilterDate] = useState(''); // single date filter for viewAll
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [currentMonthLabel, setCurrentMonthLabel] = useState('');
 
   const [viewAll, setViewAll] = useState(false);
-
-  const DEPT_OPTIONS = Object.keys(DEPT_FIELDS);
 
   const reportOptions = [
     { label: 'Last 3 Months', value: 'last3months' },
@@ -151,7 +265,8 @@ const PerformanceView = () => {
     { label: '3rd Last Month', value: 'thirdlastmonth' }
   ];
 
-  // === Download Report ===
+  const departmentOptions = ['', ...Object.keys(DEPT_FIELDS)];
+
   const downloadZip = (period) => {
     if (!period) return;
     const url = `${import.meta.env.VITE_API_URL}/api/performance-export/export-zip`;
@@ -196,29 +311,29 @@ const PerformanceView = () => {
       });
   }, [page, searchEmpId, searchDept, viewAll]);
 
-  // === Filter Data ===
+  // === Filter & Flatten ===
   useEffect(() => {
     if (!data.length) {
       setFilteredData([]);
       return;
     }
 
-    let records = [...data];
+    let flatData = data.map(flattenRecord);
 
     if (viewAll) {
-      records = records.filter(r => {
-        const empMatch = searchEmpId.trim() ? (r.empId || r.employeeId || '').toLowerCase().includes(searchEmpId.trim().toLowerCase()) : true;
+      // Apply frontend filters for viewAll
+      flatData = flatData.filter(r => {
+        const empMatch = searchEmpId.trim() ? (r.employeeId || '').toLowerCase().includes(searchEmpId.trim().toLowerCase()) : true;
         const deptMatch = searchDept.trim() ? (r.department || '').toLowerCase() === searchDept.trim().toLowerCase() : true;
         const dateMatch = filterDate.trim() ? r.date === filterDate.trim() : true;
         return empMatch && deptMatch && dateMatch;
       });
     }
 
-    setFilteredData(records);
+    setFilteredData(flatData);
   }, [data, searchEmpId, searchDept, filterDate, viewAll]);
 
-  // === Columns ===
-  const showDeptFields = searchEmpId.trim() !== '' || searchDept.trim() !== '';
+  const showDeptFields = (searchEmpId.trim() !== '' || searchDept.trim() !== '') && true;
   const showOnlyBasicFields = false;
 
   let columns = ['Employee ID', 'Department', 'Date'];
@@ -232,7 +347,6 @@ const PerformanceView = () => {
     columns = columns.concat(extraFields);
   }
 
-  // === Render ===
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>Admin Dashboard</h2>
@@ -278,8 +392,10 @@ const PerformanceView = () => {
           value={searchDept}
           onChange={e => { setSearchDept(e.target.value); setPage(1); }}
         >
-          <option value="">All Departments</option>
-          {DEPT_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+          <option value="">All</option>
+          {Object.keys(DEPT_FIELDS).map(dept => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
         </select>
 
         {viewAll && (
@@ -312,7 +428,7 @@ const PerformanceView = () => {
             <tbody>
               {filteredData.map((row, idx) => (
                 <tr key={idx}>
-                  <td style={styles.td}>{row.empId || row.employeeId}</td>
+                  <td style={styles.td}>{row.employeeId}</td>
                   <td style={styles.td}>{row.department}</td>
                   <td style={styles.td}>{row.date}</td>
                   {!showOnlyBasicFields &&
