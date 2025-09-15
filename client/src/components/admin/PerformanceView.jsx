@@ -65,6 +65,12 @@ const DEPT_FIELDS = {
     'Accounts - Number of vendor invoices processed',
     'Accounts - Remarks ',
   ],
+  'Graphic Designer': [
+    'Graphic Designer - Give a summary for the day',
+  ],
+  Others: [
+    'Others - Give a summary for the day',
+  ],
 };
 
 const FIELD_MAP = {
@@ -125,6 +131,12 @@ const FIELD_MAP = {
     transactionsRecorded: 'Accounts - Number of transactions recorded in the accounting system',
     vendorInvoicesProcessed: 'Accounts - Number of vendor invoices processed',
     remarks: 'Accounts - Remarks ',
+  },
+  graphicDesignerSummary: {
+    graphicDesignerSummary: 'Graphic Designer - Give a summary for the day',
+  },
+  othersSummary: {
+    othersSummary: 'Others - Give a summary for the day',
   },
 };
 
@@ -249,7 +261,7 @@ const PerformanceView = () => {
   const [error, setError] = useState('');
 
   const [searchEmpId, setSearchEmpId] = useState('');
-  const [searchDept, setSearchDept] = useState(''); // will be dropdown now
+  const [searchDept, setSearchDept] = useState('');
   const [filterDate, setFilterDate] = useState(''); // single date filter for viewAll
 
   const [page, setPage] = useState(1);
@@ -264,8 +276,6 @@ const PerformanceView = () => {
     { label: '2nd Last Month', value: 'secondlastmonth' },
     { label: '3rd Last Month', value: 'thirdlastmonth' }
   ];
-
-  const departmentOptions = ['', ...Object.keys(DEPT_FIELDS)];
 
   const downloadZip = (period) => {
     if (!period) return;
@@ -318,14 +328,13 @@ const PerformanceView = () => {
       return;
     }
 
-    // Flatten everything first (keeps backward compatibility)
     let flatData = data.map(flattenRecord);
 
     if (viewAll) {
       // Apply frontend filters for viewAll
       flatData = flatData.filter(r => {
         const empMatch = searchEmpId.trim() ? (r.employeeId || '').toLowerCase().includes(searchEmpId.trim().toLowerCase()) : true;
-        const deptMatch = searchDept.trim() ? (r.department || '').toLowerCase() === searchDept.trim().toLowerCase() : true;
+        const deptMatch = searchDept.trim() ? (r.department || '').toLowerCase().includes(searchDept.trim().toLowerCase()) : true;
         const dateMatch = filterDate.trim() ? r.date === filterDate.trim() : true;
         return empMatch && deptMatch && dateMatch;
       });
@@ -334,30 +343,17 @@ const PerformanceView = () => {
     setFilteredData(flatData);
   }, [data, searchEmpId, searchDept, filterDate, viewAll]);
 
-  // showDeptFields logic:
-  // If user selected a department from dropdown, show only that dept's fields.
-  // If user didn't select a department but filtered by employeeId, show fields for departments present in results.
   const showDeptFields = (searchEmpId.trim() !== '' || searchDept.trim() !== '') && true;
   const showOnlyBasicFields = false;
 
-  // Build columns:
   let columns = ['Employee ID', 'Department', 'Date'];
   if (!showOnlyBasicFields && showDeptFields && filteredData.length) {
+    const depts = Array.from(new Set(filteredData.map(r => r.department)));
     const extraFields = [];
-
-    if (searchDept.trim()) {
-      // If a department is explicitly selected, use its fields (if known)
-      const fields = DEPT_FIELDS[searchDept] || [];
-      fields.forEach(f => { if (!extraFields.includes(f)) extraFields.push(f); });
-    } else {
-      // No explicit department selected: derive departments from results (existing behavior)
-      const depts = Array.from(new Set(filteredData.map(r => r.department).filter(Boolean)));
-      depts.forEach(d => {
-        const fields = DEPT_FIELDS[d];
-        if (fields) fields.forEach(f => { if (!extraFields.includes(f)) extraFields.push(f); });
-      });
-    }
-
+    depts.forEach(d => {
+      const fields = DEPT_FIELDS[d];
+      if (fields) fields.forEach(f => { if (!extraFields.includes(f)) extraFields.push(f); });
+    });
     columns = columns.concat(extraFields);
   }
 
@@ -400,17 +396,14 @@ const PerformanceView = () => {
         />
 
         <label style={styles.label} htmlFor="searchDept">Search by Department:</label>
-        <select
+        <input
           style={styles.input}
           id="searchDept"
+          type="text"
+          placeholder="Department"
           value={searchDept}
           onChange={e => { setSearchDept(e.target.value); setPage(1); }}
-        >
-          <option value="">All</option>
-          {departmentOptions.slice(1).map(dept => (
-            <option key={dept} value={dept}>{dept}</option>
-          ))}
-        </select>
+        />
 
         {viewAll && (
           <>
