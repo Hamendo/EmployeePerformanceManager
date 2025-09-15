@@ -12,6 +12,95 @@ function flattenSection(section, mapping) {
   return flat;
 }
 
+// mapping for all departments
+const departmentMappings = {
+  reservations: {
+    bookingRequestsProcessed: 'Reservation - No of Booking Requests Processed ',
+    confirmationsUpdated: 'Reservation - No of Confirmations Updated',
+    cancellations: 'Reservation - No of Cancellations ',
+    amendmentsMade: 'Reservation - No. of Amendments Made ',
+    reconfirmationsMade: 'Reservation - No of Reconfirmations Made ',
+    remarks: 'Reservation - Remarks ',
+  },
+  tajBhutan: {
+    bhutanAirBookingProcessed: 'Taj/Bhutan - No. of Bhutan Air Booking Processed ',
+    confirmedBhutanAirTickets: 'Taj/Bhutan - No of Confirmed Bhutan Air Tickets ',
+    tajHotelsBookingProcessed: 'Taj/Bhutan - No of Taj Hotels Booking Processed ',
+    confirmedBookings: 'Taj/Bhutan - No of Confirmed bookings ',
+    cancellations: 'Taj/Bhutan - No of Cancellations ',
+    amendmentsMade: 'Taj/Bhutan - No of Amendments made',
+    reconfirmationsMade: 'Taj/Bhutan - No of Reconfirmations made',
+    remarks: 'Taj/Bhutan - Remarks ',
+  },
+  salesOnline: {
+    enquiriesReceived: 'Sales Online - No of Enquiries Received ',
+    conversions: 'Sales Online - No of Conversions ',
+    followUpsTaken: 'Sales Online - No of Follow-Ups Taken ',
+    cancellations: 'Sales Online - No of Cancellations ',
+    remarks: 'Sales Online - Remarks ',
+  },
+  salesGroup: {
+    enquiriesReceived: 'Sales Group - No of Enquiries Received ',
+    conversionsMade: 'Sales Group - No of Conversions Made ',
+    followUpsTaken: 'Sales Group - No of Follow-Ups Taken ',
+    cancellations: 'Sales Group - No of Cancellations ',
+    amendmentsMade: 'Sales Group - No of Amendments Made ',
+    remarks: 'Sales Group - Remarks ',
+  },
+  it: {
+    entriesMade: 'IT - No of Entries Made ',
+    amendmentsMade: 'IT - No. of Amendments Made ',
+    callsOrEmailsMade: 'IT - No of Calls/Emails Made ',
+    creativesMade: 'IT - No of Creatives Made ',
+    remarks: 'IT - Remarks ',
+  },
+  hr: {
+    interviewsTaken: 'HR - Number of Interviews Taken ',
+    jobOffersExtended: 'HR - Number of Job Offers Extended ',
+    leaveRequestsReceived: 'HR - How many Leave Requests Received Today ',
+    grievancesAddressed: 'HR - Number of Employee Grievances Addressed ',
+    salaryProcessing: 'HR - Number of Salary Processing ',
+    payrollProcessing: 'HR - Payroll Processing ',
+    exitInterviewsConducted: 'HR - Were any Exit Interviews Conducted Today ',
+    retentionEffortsMade: 'HR - Were any Retention Efforts Made (at risk of leaving) ',
+    remarks: 'HR - Remarks ',
+  },
+  accounts: {
+    customerPaymentsProcessed: 'Accounts - Number of Customer Payments Processed ',
+    taxFilingsPreparedReviewed: 'Accounts - Number of Tax Filings Prepared/Reviewed ',
+    transactionsRecorded: 'Accounts - Number of transactions recorded in the accounting system',
+    vendorInvoicesProcessed: 'Accounts - Number of vendor invoices processed',
+    remarks: 'Accounts - Remarks ',
+  },
+  graphicDesigner: {
+    graphicDesignerSummary: 'Graphic Designer - Give a summary for the day',
+  },
+  others: {
+    othersSummary: 'Others - Give a summary for the day',
+  },
+};
+
+function formatDoc(doc, department) {
+  const base = {
+    employeeId: doc.employeeId,
+    department: doc.department,
+    date: doc.date,
+    location: doc.location,
+  };
+
+  // if department filter provided, flatten only that
+  if (department && departmentMappings[department]) {
+    return { ...base, ...flattenSection(doc[department], departmentMappings[department]) };
+  }
+
+  // fallback: flatten all
+  let combined = { ...base };
+  for (const [deptKey, mapping] of Object.entries(departmentMappings)) {
+    combined = { ...combined, ...flattenSection(doc[deptKey], mapping) };
+  }
+  return combined;
+}
+
 router.get('/', async (req, res) => {
   try {
     const {
@@ -27,9 +116,7 @@ router.get('/', async (req, res) => {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSize = isViewAll ? null : Math.max(1, parseInt(limit, 10) || 100);
 
-    // If viewAll or month filter is provided, keep existing behavior
     if (isViewAll || month) {
-      // Existing pagination by records or month filter logic
       const skip = isViewAll ? 0 : (pageNum - 1) * pageSize;
 
       const filter = {};
@@ -89,72 +176,7 @@ router.get('/', async (req, res) => {
         total = (aggResult[0] && aggResult[0].totalCount[0] && aggResult[0].totalCount[0].count) || 0;
       }
 
-      const formatted = docs.map((doc) => ({
-        employeeId: doc.employeeId,
-        department: doc.department,
-        date: doc.date,
-        location: doc.location,
-        ...flattenSection(doc.reservations, {
-          bookingRequestsProcessed: 'Reservation - No of Booking Requests Processed ',
-          confirmationsUpdated: 'Reservation - No of Confirmations Updated',
-          cancellations: 'Reservation - No of Cancellations ',
-          amendmentsMade: 'Reservation - No. of Amendments Made ',
-          reconfirmationsMade: 'Reservation - No of Reconfirmations Made ',
-          remarks: 'Reservation - Remarks ',
-        }),
-        ...flattenSection(doc.tajBhutan, {
-          bhutanAirBookingProcessed: 'Taj/Bhutan - No. of Bhutan Air Booking Processed ',
-          confirmedBhutanAirTickets: 'Taj/Bhutan - No of Confirmed Bhutan Air Tickets ',
-          tajHotelsBookingProcessed: 'Taj/Bhutan - No of Taj Hotels Booking Processed ',
-          confirmedBookings: 'Taj/Bhutan - No of Confirmed bookings ',
-          cancellations: 'Taj/Bhutan - No of Cancellations ',
-          amendmentsMade: 'Taj/Bhutan - No of Amendments made',
-          reconfirmationsMade: 'Taj/Bhutan - No of Reconfirmations made',
-          remarks: 'Taj/Bhutan - Remarks ',
-        }),
-        ...flattenSection(doc.salesOnline, {
-          enquiriesReceived: 'Sales Online - No of Enquiries Received ',
-          conversions: 'Sales Online - No of Conversions ',
-          followUpsTaken: 'Sales Online - No of Follow-Ups Taken ',
-          cancellations: 'Sales Online - No of Cancellations ',
-          remarks: 'Sales Online - Remarks ',
-        }),
-        ...flattenSection(doc.salesGroup, {
-          enquiriesReceived: 'Sales Group - No of Enquiries Received ',
-          conversionsMade: 'Sales Group - No of Conversions Made ',
-          followUpsTaken: 'Sales Group - No of Follow-Ups Taken ',
-          cancellations: 'Sales Group - No of Cancellations ',
-          amendmentsMade: 'Sales Group - No of Amendments Made ',
-          remarks: 'Sales Group - Remarks ',
-        }),
-        ...flattenSection(doc.it, {
-          entriesMade: 'IT - No of Entries Made ',
-          amendmentsMade: 'IT - No. of Amendments Made ',
-          callsOrEmailsMade: 'IT - No of Calls/Emails Made ',
-          creativesMade: 'IT - No of Creatives Made ',
-          remarks: 'IT - Remarks ',
-        }),
-        ...flattenSection(doc.hr, {
-          interviewsTaken: 'HR - Number of Interviews Taken ',
-          jobOffersExtended: 'HR - Number of Job Offers Extended ',
-          leaveRequestsReceived: 'HR - How many Leave Requests Received Today ',
-          grievancesAddressed: 'HR - Number of Employee Grievances Addressed ',
-          salaryProcessing: 'HR - Number of Salary Processing ',
-          payrollProcessing: 'HR - Payroll Processing ',
-          exitInterviewsConducted: 'HR - Were any Exit Interviews Conducted Today ',
-          retentionEffortsMade: 'HR - Were any Retention Efforts Made (at risk of leaving) ',
-          remarks: 'HR - Remarks ',
-        }),
-        ...flattenSection(doc.accounts, {
-          customerPaymentsProcessed: 'Accounts - Number of Customer Payments Processed ',
-          taxFilingsPreparedReviewed: 'Accounts - Number of Tax Filings Prepared/Reviewed ',
-          transactionsRecorded: 'Accounts - Number of transactions recorded in the accounting system',
-          vendorInvoicesProcessed: 'Accounts - Number of vendor invoices processed',
-          remarks: 'Accounts - Remarks ',
-        }),
-        'Graphic Designer - Give a summary for the day': doc.graphicDesignerSummary ?? '',
-        'Others - Give a summary for the day': doc.othersSummary ?? '',
-      }));
+      const formatted = docs.map((doc) => formatDoc(doc, department));
 
       return res.json({
         data: formatted,
@@ -165,30 +187,21 @@ router.get('/', async (req, res) => {
     }
 
     // --- NEW: Month-wise paging logic when no month filter and no viewAll ---
-
-    // Build filter for empId and department if provided
     const filter = {};
     if (empId) filter.employeeId = empId;
     if (department) filter.department = department;
 
-    // Step 1: Aggregate distinct months (MM/YYYY) from date field, filtered by empId/department if any
     const monthsAgg = await Performance.aggregate([
       { $match: filter },
       {
         $project: {
           monthYear: {
-            $substr: ['$date', 3, 7], // Extract MM/YYYY from DD/MM/YYYY
+            $substr: ['$date', 3, 7],
           },
         },
       },
-      {
-        $group: {
-          _id: '$monthYear',
-        },
-      },
-      {
-        $sort: { _id: -1 }, // descending order (latest month first)
-      },
+      { $group: { _id: '$monthYear' } },
+      { $sort: { _id: -1 } },
     ]);
 
     const months = monthsAgg.map((m) => m._id).filter(Boolean);
@@ -203,9 +216,7 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const selectedMonth = months[pageNum - 1]; // zero-based index
-
-    // Step 2: Query all records for selectedMonth with empId/department filter
+    const selectedMonth = months[pageNum - 1];
     const regex = new RegExp(`\\d{1,2}\\/${selectedMonth}$`);
 
     const docs = await Performance.find({
@@ -215,73 +226,7 @@ router.get('/', async (req, res) => {
       .sort({ date: -1 })
       .exec();
 
-    // Flatten and format
-    const formatted = docs.map((doc) => ({
-      employeeId: doc.employeeId,
-      department: doc.department,
-      date: doc.date,
-      location: doc.location,
-      ...flattenSection(doc.reservations, {
-        bookingRequestsProcessed: 'Reservation - No of Booking Requests Processed ',
-        confirmationsUpdated: 'Reservation - No of Confirmations Updated',
-        cancellations: 'Reservation - No of Cancellations ',
-        amendmentsMade: 'Reservation - No. of Amendments Made ',
-        reconfirmationsMade: 'Reservation - No of Reconfirmations Made ',
-        remarks: 'Reservation - Remarks ',
-      }),
-      ...flattenSection(doc.tajBhutan, {
-        bhutanAirBookingProcessed: 'Taj/Bhutan - No. of Bhutan Air Booking Processed ',
-        confirmedBhutanAirTickets: 'Taj/Bhutan - No of Confirmed Bhutan Air Tickets ',
-        tajHotelsBookingProcessed: 'Taj/Bhutan - No of Taj Hotels Booking Processed ',
-        confirmedBookings: 'Taj/Bhutan - No of Confirmed bookings ',
-        cancellations: 'Taj/Bhutan - No of Cancellations ',
-        amendmentsMade: 'Taj/Bhutan - No of Amendments made',
-        reconfirmationsMade: 'Taj/Bhutan - No of Reconfirmations made',
-        remarks: 'Taj/Bhutan - Remarks ',
-      }),
-      ...flattenSection(doc.salesOnline, {
-        enquiriesReceived: 'Sales Online - No of Enquiries Received ',
-        conversions: 'Sales Online - No of Conversions ',
-        followUpsTaken: 'Sales Online - No of Follow-Ups Taken ',
-        cancellations: 'Sales Online - No of Cancellations ',
-        remarks: 'Sales Online - Remarks ',
-      }),
-      ...flattenSection(doc.salesGroup, {
-        enquiriesReceived: 'Sales Group - No of Enquiries Received ',
-        conversionsMade: 'Sales Group - No of Conversions Made ',
-        followUpsTaken: 'Sales Group - No of Follow-Ups Taken ',
-        cancellations: 'Sales Group - No of Cancellations ',
-        amendmentsMade: 'Sales Group - No of Amendments Made ',
-        remarks: 'Sales Group - Remarks ',
-      }),
-      ...flattenSection(doc.it, {
-        entriesMade: 'IT - No of Entries Made ',
-        amendmentsMade: 'IT - No. of Amendments Made ',
-        callsOrEmailsMade: 'IT - No of Calls/Emails Made ',
-        creativesMade: 'IT - No of Creatives Made ',
-        remarks: 'IT - Remarks ',
-      }),
-      ...flattenSection(doc.hr, {
-        interviewsTaken: 'HR - Number of Interviews Taken ',
-        jobOffersExtended: 'HR - Number of Job Offers Extended ',
-        leaveRequestsReceived: 'HR - How many Leave Requests Received Today ',
-        grievancesAddressed: 'HR - Number of Employee Grievances Addressed ',
-        salaryProcessing: 'HR - Number of Salary Processing ',
-        payrollProcessing: 'HR - Payroll Processing ',
-        exitInterviewsConducted: 'HR - Were any Exit Interviews Conducted Today ',
-        retentionEffortsMade: 'HR - Were any Retention Efforts Made (at risk of leaving) ',
-        remarks: 'HR - Remarks ',
-      }),
-      ...flattenSection(doc.accounts, {
-        customerPaymentsProcessed: 'Accounts - Number of Customer Payments Processed ',
-        taxFilingsPreparedReviewed: 'Accounts - Number of Tax Filings Prepared/Reviewed ',
-        transactionsRecorded: 'Accounts - Number of transactions recorded in the accounting system',
-        vendorInvoicesProcessed: 'Accounts - Number of vendor invoices processed',
-        remarks: 'Accounts - Remarks ',
-      }),
-      'Graphic Designer - Give a summary for the day': doc.graphicDesignerSummary ?? '',
-      'Others - Give a summary for the day': doc.othersSummary ?? '',
-    }));
+    const formatted = docs.map((doc) => formatDoc(doc, department));
 
     res.json({
       data: formatted,
