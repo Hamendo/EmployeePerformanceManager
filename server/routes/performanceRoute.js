@@ -16,15 +16,28 @@ function flattenSection(section, mapping) {
 // --- Department config (copied from performanceExport.js) ---
 const DEPARTMENTS = [
   { name: 'Reservations', key: 'reservations', mapping: { bookingRequestsProcessed: 'No of Booking Requests Processed', confirmationsUpdated: 'No of Confirmations Updated', cancellations: 'No of Cancellations', amendmentsMade: 'No. of Amendments Made', reconfirmationsMade: 'No of Reconfirmations Made', remarks: 'Remarks' } },
-  { name: 'Taj_Bhutan', key: 'tajBhutan', mapping: { bhutanAirBookingProcessed: 'No. of Bhutan Air Booking Processed', confirmedBhutanAirTickets: 'No of Confirmed Bhutan Air Tickets', tajHotelsBookingProcessed: 'No of Taj Hotels Booking Processed', confirmedBookings: 'No of Confirmed bookings', cancellations: 'No of Cancellations', amendmentsMade: 'No of Amendments made', reconfirmationsMade: 'No of Reconfirmations made', remarks: 'Remarks' } },
-  { name: 'Sales_Online', key: 'salesOnline', mapping: { enquiriesReceived: 'No of Enquiries Received', conversions: 'No of Conversions', followUpsTaken: 'No of Follow-Ups Taken', cancellations: 'No of Cancellations', remarks: 'Remarks' } },
-  { name: 'Sales_Group', key: 'salesGroup', mapping: { enquiriesReceived: 'No of Enquiries Received', conversionsMade: 'No of Conversions Made', followUpsTaken: 'No of Follow-Ups Taken', cancellations: 'No of Cancellations', amendmentsMade: 'No of Amendments Made', remarks: 'Remarks' } },
+  { name: 'Taj/Bhutan', key: 'tajBhutan', mapping: { bhutanAirBookingProcessed: 'No. of Bhutan Air Booking Processed', confirmedBhutanAirTickets: 'No of Confirmed Bhutan Air Tickets', tajHotelsBookingProcessed: 'No of Taj Hotels Booking Processed', confirmedBookings: 'No of Confirmed bookings', cancellations: 'No of Cancellations', amendmentsMade: 'No of Amendments made', reconfirmationsMade: 'No of Reconfirmations made', remarks: 'Remarks' } },
+  { name: 'Sales Online', key: 'salesOnline', mapping: { enquiriesReceived: 'No of Enquiries Received', conversions: 'No of Conversions', followUpsTaken: 'No of Follow-Ups Taken', cancellations: 'No of Cancellations', remarks: 'Remarks' } },
+  { name: 'Sales Group', key: 'salesGroup', mapping: { enquiriesReceived: 'No of Enquiries Received', conversionsMade: 'No of Conversions Made', followUpsTaken: 'No of Follow-Ups Taken', cancellations: 'No of Cancellations', amendmentsMade: 'No of Amendments Made', remarks: 'Remarks' } },
   { name: 'IT', key: 'it', mapping: { entriesMade: 'No of Entries Made', amendmentsMade: 'No of Amendments Made', callsOrEmailsMade: 'No of Calls/Emails Made', creativesMade: 'No of Creatives Made', remarks: 'Remarks' } },
   { name: 'HR', key: 'hr', mapping: { interviewsTaken: 'Number of Interviews Taken', jobOffersExtended: 'Number of Job Offers Extended', leaveRequestsReceived: 'How many Leave Requests Received Today', grievancesAddressed: 'Number of Employee Grievances Addressed', salaryProcessing: 'Number of Salary Processing', payrollProcessing: 'Payroll Processing', exitInterviewsConducted: 'Were any Exit Interviews Conducted Today', retentionEffortsMade: 'Were any Retention Efforts Made (at risk of leaving)', remarks: 'Remarks' } },
   { name: 'Accounts', key: 'accounts', mapping: { customerPaymentsProcessed: 'Number of Customer Payments Processed', taxFilingsPreparedReviewed: 'Number of Tax Filings Prepared/Reviewed', transactionsRecorded: 'Number of transactions recorded in the accounting system', vendorInvoicesProcessed: 'Number of vendor invoices processed', remarks: 'Remarks' } },
-  { name: 'Graphic_Designer', isSummary: true, summaryKey: 'graphicDesignerSummary' },
+  { name: 'Graphic Designer', isSummary: true, summaryKey: 'graphicDesignerSummary' },
   { name: 'Others', isSummary: true, summaryKey: 'othersSummary' }
 ];
+
+// --- Dropdown name → DB key map ---
+const DEPT_KEY_MAP = {
+  Reservations: 'reservations',
+  'Taj/Bhutan': 'tajBhutan',
+  'Sales Online': 'salesOnline',
+  'Sales Group': 'salesGroup',
+  IT: 'it',
+  HR: 'hr',
+  Accounts: 'accounts',
+  'Graphic Designer': 'graphicDesignerSummary',
+  Others: 'othersSummary'
+};
 
 // --- Flatten per record ---
 function flattenRecord(doc) {
@@ -60,9 +73,13 @@ router.get('/', async (req, res) => {
 
     const filter = {};
     if (empId) filter.employeeId = empId;
-    if (department) filter.department = { $regex: new RegExp(`^${department}$`, 'i') };
 
-    // Month filter (keep as in your original route)
+    if (department) {
+      const normalizedDept = DEPT_KEY_MAP[department] || department;
+      filter.department = { $regex: new RegExp(`^${normalizedDept}$`, 'i') };
+    }
+
+    // Month filter
     if (month) {
       let monthNum, yearNum;
       if (/^\d{4}-\d{2}$/.test(month)) {
