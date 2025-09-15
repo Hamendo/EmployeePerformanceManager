@@ -7,7 +7,7 @@ console.log(React);
 // === Constants and helper functions ===
 
 const DEPT_FIELDS = {
-  Reservation: [
+  'RESERVATION': [
     'Reservation - No of Booking Requests Processed ',
     'Reservation - No of Confirmations Updated',
     'Reservation - No of Cancellations ',
@@ -15,7 +15,7 @@ const DEPT_FIELDS = {
     'Reservation - No of Reconfirmations Made ',
     'Reservation - Remarks ',
   ],
-  'Taj/Bhutan': [
+  'Bhutan Air Ticket & Taj Hotels': [
     'Taj/Bhutan - No. of Bhutan Air Booking Processed ',
     'Taj/Bhutan - No of Confirmed Bhutan Air Tickets ',
     'Taj/Bhutan - No of Taj Hotels Booking Processed ',
@@ -25,14 +25,14 @@ const DEPT_FIELDS = {
     'Taj/Bhutan - No of Reconfirmations made',
     'Taj/Bhutan - Remarks ',
   ],
-  'Sales Online': [
+  'Sales(Online)': [
     'Sales Online - No of Enquiries Received ',
     'Sales Online - No of Conversions ',
     'Sales Online - No of Follow-Ups Taken ',
     'Sales Online - No of Cancellations ',
     'Sales Online - Remarks ',
   ],
-  'Sales Group': [
+  'Sales(Group)': [
     'Sales Group - No of Enquiries Received ',
     'Sales Group - No of Conversions Made ',
     'Sales Group - No of Follow-Ups Taken ',
@@ -58,7 +58,7 @@ const DEPT_FIELDS = {
     'HR - Were any Retention Efforts Made (at risk of leaving) ',
     'HR - Remarks ',
   ],
-  Accounts: [
+  'ACCOUNTS': [
     'Accounts - Number of Customer Payments Processed ',
     'Accounts - Number of Tax Filings Prepared/Reviewed ',
     'Accounts - Number of transactions recorded in the accounting system',
