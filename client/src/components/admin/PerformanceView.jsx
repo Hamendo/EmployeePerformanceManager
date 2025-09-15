@@ -395,15 +395,18 @@ const PerformanceView = () => {
           onChange={e => { setSearchEmpId(e.target.value); setPage(1); }}
         />
 
-        <label style={styles.label} htmlFor="searchDept">Search by Department:</label>
-        <input
+        <label style={styles.label} htmlFor="searchDept">Filter by Department:</label>
+        <select
           style={styles.input}
           id="searchDept"
-          type="text"
-          placeholder="Department"
           value={searchDept}
           onChange={e => { setSearchDept(e.target.value); setPage(1); }}
-        />
+        >
+          <option value="">All Departments</option>
+          {Object.keys(DEPT_FIELDS).map(dept => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </select>
 
         {viewAll && (
           <>
