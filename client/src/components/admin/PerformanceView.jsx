@@ -132,12 +132,6 @@ const FIELD_MAP = {
     vendorInvoicesProcessed: 'Accounts - Number of vendor invoices processed',
     remarks: 'Accounts - Remarks ',
   },
-  graphicDesignerSummary: {
-    graphicDesignerSummary: 'Graphic Designer - Give a summary for the day',
-  },
-  othersSummary: {
-    othersSummary: 'Others - Give a summary for the day',
-  },
 };
 
 const BASE_TOP_LEVEL_KEYS = new Set([
