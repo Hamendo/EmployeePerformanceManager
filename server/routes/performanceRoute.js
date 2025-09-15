@@ -72,12 +72,6 @@ const departmentMappings = {
     vendorInvoicesProcessed: 'Accounts - Number of vendor invoices processed',
     remarks: 'Accounts - Remarks ',
   },
-  graphicDesigner: {
-    graphicDesignerSummary: 'Graphic Designer - Give a summary for the day',
-  },
-  others: {
-    othersSummary: 'Others - Give a summary for the day',
-  },
 };
 
 function formatDoc(doc, department) {
