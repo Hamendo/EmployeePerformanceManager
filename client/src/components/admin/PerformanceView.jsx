@@ -249,7 +249,7 @@ const PerformanceView = () => {
   const [error, setError] = useState('');
 
   const [searchEmpId, setSearchEmpId] = useState('');
-  const [searchDept, setSearchDept] = useState('');
+  const [searchDept, setSearchDept] = useState(''); // will be dropdown now
   const [filterDate, setFilterDate] = useState(''); // single date filter for viewAll
 
   const [page, setPage] = useState(1);
@@ -318,6 +318,7 @@ const PerformanceView = () => {
       return;
     }
 
+    // Flatten everything first (keeps backward compatibility)
     let flatData = data.map(flattenRecord);
 
     if (viewAll) {
@@ -333,17 +334,30 @@ const PerformanceView = () => {
     setFilteredData(flatData);
   }, [data, searchEmpId, searchDept, filterDate, viewAll]);
 
+  // showDeptFields logic:
+  // If user selected a department from dropdown, show only that dept's fields.
+  // If user didn't select a department but filtered by employeeId, show fields for departments present in results.
   const showDeptFields = (searchEmpId.trim() !== '' || searchDept.trim() !== '') && true;
   const showOnlyBasicFields = false;
 
+  // Build columns:
   let columns = ['Employee ID', 'Department', 'Date'];
   if (!showOnlyBasicFields && showDeptFields && filteredData.length) {
-    const depts = Array.from(new Set(filteredData.map(r => r.department)));
     const extraFields = [];
-    depts.forEach(d => {
-      const fields = DEPT_FIELDS[d];
-      if (fields) fields.forEach(f => { if (!extraFields.includes(f)) extraFields.push(f); });
-    });
+
+    if (searchDept.trim()) {
+      // If a department is explicitly selected, use its fields (if known)
+      const fields = DEPT_FIELDS[searchDept] || [];
+      fields.forEach(f => { if (!extraFields.includes(f)) extraFields.push(f); });
+    } else {
+      // No explicit department selected: derive departments from results (existing behavior)
+      const depts = Array.from(new Set(filteredData.map(r => r.department).filter(Boolean)));
+      depts.forEach(d => {
+        const fields = DEPT_FIELDS[d];
+        if (fields) fields.forEach(f => { if (!extraFields.includes(f)) extraFields.push(f); });
+      });
+    }
+
     columns = columns.concat(extraFields);
   }
 
@@ -393,7 +407,7 @@ const PerformanceView = () => {
           onChange={e => { setSearchDept(e.target.value); setPage(1); }}
         >
           <option value="">All</option>
-          {Object.keys(DEPT_FIELDS).map(dept => (
+          {departmentOptions.slice(1).map(dept => (
             <option key={dept} value={dept}>{dept}</option>
           ))}
         </select>
