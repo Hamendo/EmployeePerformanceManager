@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const Performance = require('../models/performance');
 
-// --- Helper: Flatten record strictly ---
+// --- Helper: Flatten record strictly ----
 function flattenRecord(doc, { department, empId }) {
   const base = {
     employeeId: doc.employeeId,
