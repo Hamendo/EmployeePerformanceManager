@@ -1,3 +1,4 @@
+// File: client/src/pages/PerformanceView.jsx
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +8,7 @@ console.log(React);
 // === Constants and helper functions ===
 
 const DEPT_FIELDS = {
-  'RESERVATION': [
+  RESERVATION: [
     'Reservation - No of Booking Requests Processed ',
     'Reservation - No of Confirmations Updated',
     'Reservation - No of Cancellations ',
@@ -58,19 +59,15 @@ const DEPT_FIELDS = {
     'HR - Were any Retention Efforts Made (at risk of leaving) ',
     'HR - Remarks ',
   ],
-  'ACCOUNTS': [
+  ACCOUNTS: [
     'Accounts - Number of Customer Payments Processed ',
     'Accounts - Number of Tax Filings Prepared/Reviewed ',
     'Accounts - Number of transactions recorded in the accounting system',
     'Accounts - Number of vendor invoices processed',
     'Accounts - Remarks ',
   ],
-  'Graphic Designer': [
-    'Graphic Designer - Give a summary for the day',
-  ],
-  Others: [
-    'Others - Give a summary for the day',
-  ],
+  'Graphic Designer': ['Graphic Designer - Give a summary for the day'],
+  Others: ['Others - Give a summary for the day'],
 };
 
 const FIELD_MAP = {
@@ -135,18 +132,31 @@ const FIELD_MAP = {
 };
 
 const BASE_TOP_LEVEL_KEYS = new Set([
-  'timestamp', 'date', 'employeeId', 'empId', 'location', 'department',
-  'reservations', 'tajBhutan', 'salesOnline', 'salesGroup', 'it', 'hr', 'accounts',
-  'graphicDesignerSummary', 'othersSummary', '_id', '__v', 'createdAt', 'updatedAt'
+  'timestamp',
+  'date',
+  'employeeId',
+  'empId',
+  'location',
+  'department',
+  'reservations',
+  'tajBhutan',
+  'salesOnline',
+  'salesGroup',
+  'it',
+  'hr',
+  'accounts',
+  'graphicDesignerSummary',
+  'othersSummary',
+  '_id',
+  '__v',
+  'createdAt',
+  'updatedAt',
 ]);
 
 const ALL_CANON_LABELS = Object.values(DEPT_FIELDS).flat();
 
 const normalize = (s) =>
-  (s || '')
-    .toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/[^\w]/g, '');
+  (s || '').toLowerCase().replace(/\s+/g, '').replace(/[^\w]/g, '');
 
 const CANON_LOOKUP = ALL_CANON_LABELS.reduce((acc, label) => {
   acc[normalize(label)] = label;
@@ -191,7 +201,12 @@ const flattenRecord = (perf) => {
 };
 
 const styles = {
-  container: { padding: '2rem', backgroundColor: '#F8FAFC', color: '#374151', minHeight: '100vh' },
+  container: {
+    padding: '2rem',
+    backgroundColor: '#F8FAFC',
+    color: '#374151',
+    minHeight: '100vh',
+  },
   heading: { color: '#B91C1C', marginBottom: '1rem' },
   error: { color: '#B91C1C' },
   input: {
@@ -200,11 +215,7 @@ const styles = {
     border: '1px solid #ccc',
     borderRadius: '4px',
   },
-  nav: {
-    marginBottom: '1rem',
-    display: 'flex',
-    gap: '1rem',
-  },
+  nav: { marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' },
   navButton: {
     backgroundColor: '#B91C1C',
     color: '#FFFFFF',
@@ -213,13 +224,8 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
   },
-  label: {
-    marginRight: '0.5rem',
-    fontWeight: 'bold',
-  },
-  searchBar: {
-    marginBottom: '1rem',
-  },
+  label: { marginRight: '0.5rem', fontWeight: 'bold' },
+  searchBar: { marginBottom: '1rem' },
   table: { width: '100%', borderCollapse: 'collapse', backgroundColor: '#FFFFFF' },
   th: { backgroundColor: '#374151', color: '#FFFFFF', padding: '0.5rem', border: '1px solid #ccc' },
   td: { padding: '0.5rem', border: '1px solid #ccc' },
@@ -243,7 +249,7 @@ const styles = {
     background: '#eee',
     color: '#888',
     cursor: 'not-allowed',
-  }
+  },
 };
 
 const PerformanceView = () => {
@@ -256,7 +262,7 @@ const PerformanceView = () => {
 
   const [searchEmpId, setSearchEmpId] = useState('');
   const [searchDept, setSearchDept] = useState('');
-  const [filterDate, setFilterDate] = useState(''); // single date filter for viewAll
+  const [filterDate, setFilterDate] = useState('');
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -264,21 +270,24 @@ const PerformanceView = () => {
 
   const [viewAll, setViewAll] = useState(false);
 
+  const [countdown, setCountdown] = useState(null);
+  const [isCounting, setIsCounting] = useState(false);
+
   const reportOptions = [
     { label: 'Last 3 Months', value: 'last3months' },
     { label: 'Last Month', value: 'lastmonth' },
     { label: '2nd Last Month', value: 'secondlastmonth' },
-    { label: '3rd Last Month', value: 'thirdlastmonth' }
+    { label: '3rd Last Month', value: 'thirdlastmonth' },
   ];
+
+  const GF1_URL = 'https://forms.gle/EL3UmGLwNKQbuyxt9';
 
   const downloadZip = (period) => {
     if (!period) return;
     const url = `${import.meta.env.VITE_API_URL}/api/performance-export/export-zip`;
-    axios.get(url, {
-      params: { period },
-      responseType: 'blob'
-    })
-      .then(res => {
+    axios
+      .get(url, { params: { period }, responseType: 'blob' })
+      .then((res) => {
         const blob = new Blob([res.data]);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -287,7 +296,7 @@ const PerformanceView = () => {
         a.click();
         window.URL.revokeObjectURL(url);
       })
-      .catch(err => console.error('Download failed', err));
+      .catch((err) => console.error('Download failed', err));
   };
 
   // === Fetch Data ===
@@ -300,15 +309,16 @@ const PerformanceView = () => {
     if (searchEmpId.trim()) params.empId = searchEmpId.trim();
     if (searchDept.trim()) params.department = searchDept.trim();
 
-    axios.get(`${import.meta.env.VITE_API_URL}/api/performance`, { params })
-      .then(res => {
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/api/performance`, { params })
+      .then((res) => {
         const json = res.data;
         setData(json.data || []);
-        setTotalPages(viewAll ? 1 : (json.totalPages || 1));
+        setTotalPages(viewAll ? 1 : json.totalPages || 1);
         setCurrentMonthLabel(json.currentMonth || '');
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         setError('Failed to fetch performance data');
         setLoading(false);
@@ -325,10 +335,13 @@ const PerformanceView = () => {
     let flatData = data.map(flattenRecord);
 
     if (viewAll) {
-      // Apply frontend filters for viewAll
-      flatData = flatData.filter(r => {
-        const empMatch = searchEmpId.trim() ? (r.employeeId || '').toLowerCase().includes(searchEmpId.trim().toLowerCase()) : true;
-        const deptMatch = searchDept.trim() ? (r.department || '').toLowerCase().includes(searchDept.trim().toLowerCase()) : true;
+      flatData = flatData.filter((r) => {
+        const empMatch = searchEmpId.trim()
+          ? (r.employeeId || '').toLowerCase().includes(searchEmpId.trim().toLowerCase())
+          : true;
+        const deptMatch = searchDept.trim()
+          ? (r.department || '').toLowerCase().includes(searchDept.trim().toLowerCase())
+          : true;
         const dateMatch = filterDate.trim() ? r.date === filterDate.trim() : true;
         return empMatch && deptMatch && dateMatch;
       });
@@ -337,16 +350,40 @@ const PerformanceView = () => {
     setFilteredData(flatData);
   }, [data, searchEmpId, searchDept, filterDate, viewAll]);
 
-  const showDeptFields = (searchEmpId.trim() !== '' || searchDept.trim() !== '') && true;
+  const handleDelayedOpen = () => {
+    if (isCounting) return;
+    setIsCounting(true);
+    setCountdown(10);
+    alert('The form will open in 10 seconds!');
+
+    let timeLeft = 10;
+    const interval = setInterval(() => {
+      timeLeft -= 1;
+      setCountdown(timeLeft);
+
+      if (timeLeft === 0) {
+        clearInterval(interval);
+        setIsCounting(false);
+        alert('Redirecting now...');
+        window.open(GF1_URL, '_blank');
+      }
+    }, 1000);
+  };
+
+  const showDeptFields = searchEmpId.trim() !== '' || searchDept.trim() !== '';
   const showOnlyBasicFields = false;
 
   let columns = ['Employee ID', 'Department', 'Date'];
   if (!showOnlyBasicFields && showDeptFields && filteredData.length) {
-    const depts = Array.from(new Set(filteredData.map(r => r.department)));
+    const depts = Array.from(new Set(filteredData.map((r) => r.department)));
     const extraFields = [];
-    depts.forEach(d => {
+    depts.forEach((d) => {
       const fields = DEPT_FIELDS[d];
-      if (fields) fields.forEach(f => { if (!extraFields.includes(f)) extraFields.push(f); });
+      if (fields) {
+        fields.forEach((f) => {
+          if (!extraFields.includes(f)) extraFields.push(f);
+        });
+      }
     });
     columns = columns.concat(extraFields);
   }
@@ -356,15 +393,38 @@ const PerformanceView = () => {
       <h2 style={styles.heading}>Admin Dashboard</h2>
 
       <nav style={styles.nav}>
-        <button onClick={() => navigate('/admin/dashboard')} style={styles.navButton}>Master Database</button>
-        <button onClick={() => window.open('https://forms.gle/EL3UmGLwNKQbuyxt9', '_blank')} style={styles.navButton}>Create / Delete / Update</button>
-        <button style={styles.navButton} disabled>View Performance</button>
+        <button onClick={() => navigate('/admin/dashboard')} style={styles.navButton}>
+          Master Database
+        </button>
+        <button
+          onClick={handleDelayedOpen}
+          style={{
+            ...styles.navButton,
+            opacity: isCounting ? 0.6 : 1,
+            cursor: isCounting ? 'not-allowed' : 'pointer',
+          }}
+          disabled={isCounting}
+        >
+          Create / Delete / Update
+        </button>
+        {isCounting && (
+          <span style={{ marginLeft: '1rem' }}>
+            Opening in <strong>{countdown}</strong> seconds...
+          </span>
+        )}
+        <button style={styles.navButton} disabled>
+          View Performance
+        </button>
       </nav>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
         <select onChange={(e) => downloadZip(e.target.value)}>
           <option value="">Download Report</option>
-          {reportOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+          {reportOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -372,62 +432,93 @@ const PerformanceView = () => {
         <h2 style={styles.heading}>Performance Records</h2>
 
         <button
-          style={{ ...styles.navButton, backgroundColor: viewAll ? '#16A34A' : '#B91C1C' }}
-          onClick={() => { setViewAll(!viewAll); setPage(1); }}
+          style={{
+            ...styles.navButton,
+            backgroundColor: viewAll ? '#16A34A' : '#B91C1C',
+          }}
+          onClick={() => {
+            setViewAll(!viewAll);
+            setPage(1);
+          }}
         >
           {viewAll ? 'Switch to Month View' : 'View All Records'}
         </button>
-        <br /><br />
+        <br />
+        <br />
 
-        <label style={styles.label} htmlFor="searchEmpId">Search by Employee ID:</label>
+        <label style={styles.label} htmlFor="searchEmpId">
+          Search by Employee ID:
+        </label>
         <input
           style={styles.input}
           id="searchEmpId"
           type="text"
           placeholder="Employee ID"
           value={searchEmpId}
-          onChange={e => { setSearchEmpId(e.target.value.toUpperCase()); setPage(1); }}
+          onChange={(e) => {
+            setSearchEmpId(e.target.value.toUpperCase());
+            setPage(1);
+          }}
         />
 
-        <label style={styles.label} htmlFor="searchDept">Filter by Department:</label>
+        <label style={styles.label} htmlFor="searchDept">
+          Filter by Department:
+        </label>
         <select
           style={styles.input}
           id="searchDept"
           value={searchDept}
-          onChange={e => { setSearchDept(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setSearchDept(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="">All Departments</option>
-          {Object.keys(DEPT_FIELDS).map(dept => (
-            <option key={dept} value={dept}>{dept}</option>
+          {Object.keys(DEPT_FIELDS).map((dept) => (
+            <option key={dept} value={dept}>
+              {dept}
+            </option>
           ))}
         </select>
 
         {viewAll && (
           <>
-            <label style={styles.label} htmlFor="filterDate">Filter by Date (DD/MM/YYYY):</label>
+            <label style={styles.label} htmlFor="filterDate">
+              Filter by Date (DD/MM/YYYY):
+            </label>
             <input
               style={styles.input}
               id="filterDate"
               type="text"
               placeholder="DD/MM/YYYY"
               value={filterDate}
-              onChange={e => setFilterDate(e.target.value)}
+              onChange={(e) => setFilterDate(e.target.value)}
             />
           </>
         )}
       </div>
 
-      {currentMonthLabel && !viewAll && (<h3>Showing data for month: {currentMonthLabel}</h3>)}
+      {currentMonthLabel && !viewAll && (
+        <h3>Showing data for month: {currentMonthLabel}</h3>
+      )}
 
       {loading && <p>Loading performance data...</p>}
       {error && <p style={styles.error}>{error}</p>}
-      {!loading && !error && filteredData.length === 0 && <p>No performance records found.</p>}
+      {!loading && !error && filteredData.length === 0 && (
+        <p>No performance records found.</p>
+      )}
 
       {!loading && !error && filteredData.length > 0 && (
         <>
           <table style={styles.table}>
             <thead>
-              <tr>{columns.map(col => (<th key={col} style={styles.th}>{col}</th>))}</tr>
+              <tr>
+                {columns.map((col) => (
+                  <th key={col} style={styles.th}>
+                    {col}
+                  </th>
+                ))}
+              </tr>
             </thead>
             <tbody>
               {filteredData.map((row, idx) => (
@@ -436,8 +527,13 @@ const PerformanceView = () => {
                   <td style={styles.td}>{row.department}</td>
                   <td style={styles.td}>{row.date}</td>
                   {!showOnlyBasicFields &&
-                    columns.slice(3).map(field => (<td key={field} style={styles.td}>{row[field] ?? ''}</td>))
-                  }
+                    columns
+                      .slice(3)
+                      .map((field) => (
+                        <td key={field} style={styles.td}>
+                          {row[field] ?? ''}
+                        </td>
+                      ))}
                 </tr>
               ))}
             </tbody>
@@ -452,15 +548,17 @@ const PerformanceView = () => {
               <button
                 style={page > 1 ? styles.pageButton : styles.pageButtonDisabled}
                 disabled={page <= 1}
-                onClick={() => setPage(p => p - 1)}
+                onClick={() => setPage((p) => p - 1)}
               >
                 Prev
               </button>
-              <span>Page {page} of {totalPages}</span>
+              <span>
+                Page {page} of {totalPages}
+              </span>
               <button
                 style={page < totalPages ? styles.pageButton : styles.pageButtonDisabled}
                 disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}
+                onClick={() => setPage((p) => p + 1)}
               >
                 Next
               </button>
