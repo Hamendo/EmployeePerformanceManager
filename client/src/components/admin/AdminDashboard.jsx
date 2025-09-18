@@ -18,6 +18,7 @@ const styles = {
     marginBottom: '1rem',
     display: 'flex',
     gap: '1rem',
+    alignItems: 'center',
   },
   navButton: {
     backgroundColor: '#B91C1C',
@@ -67,8 +68,12 @@ const AdminDashboard = () => {
   const [searchName, setSearchName] = useState('');
   const [searchDept, setSearchDept] = useState('');
 
+  const [countdown, setCountdown] = useState(null);
+  const [isCounting, setIsCounting] = useState(false);
+
   const navigate = useNavigate();
-  const GF1_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSckA29iTf4kbtRt6ymr4wN2k9IBo4LS1GOim2tv-mcnVe-8UQ/viewform';
+  const GF1_URL =
+    'https://docs.google.com/forms/d/e/1FAIpQLSckA29iTf4kbtRt6ymr4wN2k9IBo4LS1GOim2tv-mcnVe-8UQ/viewform';
 
   const fetchEmployees = async () => {
     setLoadingEmployees(true);
@@ -79,7 +84,9 @@ const AdminDashboard = () => {
       if (searchName) queryParams.append('name', searchName);
       if (searchDept) queryParams.append('department', searchDept);
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/master?${queryParams.toString()}`);
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/admin/master?${queryParams.toString()}`
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
@@ -97,15 +104,42 @@ const AdminDashboard = () => {
     fetchEmployees();
   }, [searchEmpId, searchName, searchDept]);
 
+  const handleDelayedOpen = () => {
+    if (isCounting) return; // prevent multiple clicks
+    setIsCounting(true);
+    setCountdown(10);
+    alert('The form will open in 10 seconds!');
+
+    let timeLeft = 10;
+    const interval = setInterval(() => {
+      timeLeft -= 1;
+      setCountdown(timeLeft);
+
+      if (timeLeft === 0) {
+        clearInterval(interval);
+        setIsCounting(false);
+        alert('Redirecting now...');
+        window.open(GF1_URL, '_blank');
+      }
+    }, 1000);
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>Admin Dashboard</h2>
 
       <nav style={styles.nav}>
-        <button style={styles.navButton} disabled>Master Database</button>
+        <button style={styles.navButton} disabled>
+          Master Database
+        </button>
         <button
-          onClick={() => window.open(`https://forms.gle/EL3UmGLwNKQbuyxt9`, '_blank')}
-          style={styles.navButton}
+          onClick={handleDelayedOpen}
+          style={{
+            ...styles.navButton,
+            opacity: isCounting ? 0.6 : 1,
+            cursor: isCounting ? 'not-allowed' : 'pointer',
+          }}
+          disabled={isCounting}
         >
           Create / Delete / Update
         </button>
@@ -115,6 +149,11 @@ const AdminDashboard = () => {
         >
           View Performance
         </button>
+        {isCounting && (
+          <span style={{ marginLeft: '1rem' }}>
+            Opening in <strong>{countdown}</strong> seconds...
+          </span>
+        )}
       </nav>
 
       <div>
@@ -145,13 +184,29 @@ const AdminDashboard = () => {
 
         {loadingEmployees && <p>Loading employees...</p>}
         {errorEmployees && <p style={styles.error}>{errorEmployees}</p>}
-        {!loadingEmployees && !errorEmployees && employees.length === 0 && <p>No employees found.</p>}
+        {!loadingEmployees && !errorEmployees && employees.length === 0 && (
+          <p>No employees found.</p>
+        )}
         {!loadingEmployees && employees.length > 0 && (
           <table style={styles.table}>
             <thead>
               <tr>
-                {['Employee ID', 'Name', 'Email', 'Date of Joining', 'Phone Number', 'Department/Team', 'Gender', 'Bank Name', 'Branch', 'IFSC Code', 'Saving Account Number'].map((head) => (
-                  <th key={head} style={styles.th}>{head}</th>
+                {[
+                  'Employee ID',
+                  'Name',
+                  'Email',
+                  'Date of Joining',
+                  'Phone Number',
+                  'Department/Team',
+                  'Gender',
+                  'Bank Name',
+                  'Branch',
+                  'IFSC Code',
+                  'Saving Account Number',
+                ].map((head) => (
+                  <th key={head} style={styles.th}>
+                    {head}
+                  </th>
                 ))}
               </tr>
             </thead>
