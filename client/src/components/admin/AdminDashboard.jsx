@@ -1,7 +1,7 @@
 // File: client/src/pages/AdminDashboard.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-console.log(React)
+console.log(React);
 
 const styles = {
   container: {
@@ -18,7 +18,6 @@ const styles = {
     marginBottom: '1rem',
     display: 'flex',
     gap: '1rem',
-    alignItems: 'center',
   },
   navButton: {
     backgroundColor: '#B91C1C',
@@ -56,6 +55,14 @@ const styles = {
   error: {
     color: '#B91C1C',
   },
+  countdownBox: {
+    marginTop: '1rem',
+    padding: '0.5rem 1rem',
+    backgroundColor: '#FEF2F2',
+    color: '#B91C1C',
+    borderRadius: '6px',
+    display: 'inline-block',
+  },
 };
 
 const AdminDashboard = () => {
@@ -68,8 +75,8 @@ const AdminDashboard = () => {
   const [searchName, setSearchName] = useState('');
   const [searchDept, setSearchDept] = useState('');
 
-  const [countdown, setCountdown] = useState(null);
-  const [isCounting, setIsCounting] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [showCountdown, setShowCountdown] = useState(false);
 
   const navigate = useNavigate();
   const GF1_URL =
@@ -104,23 +111,26 @@ const AdminDashboard = () => {
     fetchEmployees();
   }, [searchEmpId, searchName, searchDept]);
 
-  const handleDelayedOpen = () => {
-    if (isCounting) return; // prevent multiple clicks
-    setIsCounting(true);
+  const handleCountdownClick = (url) => {
+    // Open a blank tab immediately so browser doesn't block
+    const newWindow = window.open('', '_blank');
+
     setCountdown(10);
-    alert('The form will open in 10 seconds!');
+    setShowCountdown(true);
+    alert('The form will open in 10 seconds...');
 
-    let timeLeft = 10;
     const interval = setInterval(() => {
-      timeLeft -= 1;
-      setCountdown(timeLeft);
-
-      if (timeLeft === 0) {
-        clearInterval(interval);
-        setIsCounting(false);
-        alert('Redirecting now...');
-        window.open(GF1_URL, '_blank');
-      }
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          if (newWindow) {
+            newWindow.location.href = url; // redirect to form
+          }
+          setShowCountdown(false);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
   };
 
@@ -133,13 +143,8 @@ const AdminDashboard = () => {
           Master Database
         </button>
         <button
-          onClick={handleDelayedOpen}
-          style={{
-            ...styles.navButton,
-            opacity: isCounting ? 0.6 : 1,
-            cursor: isCounting ? 'not-allowed' : 'pointer',
-          }}
-          disabled={isCounting}
+          onClick={() => handleCountdownClick('https://forms.gle/EL3UmGLwNKQbuyxt9')}
+          style={styles.navButton}
         >
           Create / Delete / Update
         </button>
@@ -149,12 +154,13 @@ const AdminDashboard = () => {
         >
           View Performance
         </button>
-        {isCounting && (
-          <span style={{ marginLeft: '1rem' }}>
-            Opening in <strong>{countdown}</strong> seconds...
-          </span>
-        )}
       </nav>
+
+      {showCountdown && (
+        <div style={styles.countdownBox}>
+          Opening form in {countdown} seconds...
+        </div>
+      )}
 
       <div>
         <h3>Employee Master Database</h3>
